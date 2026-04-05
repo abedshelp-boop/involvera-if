@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kontakt — Involvera IF</title>
+  <meta name="description" content="Kontakta Involvera IF — vi svarar på alla frågor om membership, aktiviteter och samarbeten.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- Nav -->
+<nav class="page-nav" id="page-nav">
+  <a href="index.html" class="nav-logo">INVOLVERA IF</a>
+  <ul class="nav-links">
+    <li><a href="index.html">Hem</a></li>
+    <li><a href="about.html">Om Oss</a></li>
+    <li><a href="activities.html">Aktiviteter</a></li>
+    <li><a href="contact.html" class="active">Kontakt</a></li>
+  </ul>
+  <button class="burger" id="burger" aria-label="Öppna meny"><span></span><span></span><span></span></button>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mobile-menu" id="mobile-menu">
+  <a href="index.html">Hem</a>
+  <a href="about.html">Om Oss</a>
+  <a href="activities.html">Aktiviteter</a>
+  <a href="contact.html">Kontakt</a>
+</div>
+
+<!-- Page Hero -->
+<section class="page-hero">
+  <span class="hero-eyebrow">Hör av dig</span>
+  <h1 class="page-title">
+    <span class="title-line"><span>KONTAKT</span></span>
+  </h1>
+</section>
+
+<div class="divider"></div>
+
+<!-- Contact layout: info + form -->
+<div class="contact-layout">
+
+  <!-- Left: contact info -->
+  <div class="reveal-left">
+    <span class="contact-info-label">Kontaktuppgifter</span>
+
+    <div class="contact-details">
+      <div class="contact-detail-item">
+        <span class="detail-label">E-post</span>
+        <a href="mailto:kontakt@involvera.se" class="detail-value">kontakt@involvera.se</a>
+      </div>
+      <div class="contact-detail-item">
+        <span class="detail-label">Telefon</span>
+        <a href="tel:+46707130508" class="detail-value">070-713 05 08</a>
+      </div>
+      <div class="contact-detail-item">
+        <span class="detail-label">Plats</span>
+        <span class="detail-value">Helsingborg, Sverige</span>
+      </div>
+      <div class="contact-detail-item">
+        <span class="detail-label">Org.nr</span>
+        <span class="detail-value">802546-0307</span>
+      </div>
+    </div>
+</div>
+
+  <!-- Right: contact form -->
+  <div class="reveal-right">
+    <span class="form-label-group">Skicka ett meddelande</span>
+
+    <form class="contact-form" id="contact-form" novalidate>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="name">Namn</label>
+          <input type="text" id="name" name="name" placeholder="Ditt namn" required>
+        </div>
+        <div class="form-field">
+          <label for="email">E-post</label>
+          <input type="email" id="email" name="email" placeholder="din@epost.se" required>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="phone">Telefon</label>
+        <input type="tel" id="phone" name="phone" placeholder="070-000 00 00">
+      </div>
+
+      <div class="form-field">
+        <label for="message">Meddelande</label>
+        <textarea id="message" name="message" placeholder="Skriv ditt meddelande här..." required></textarea>
+      </div>
+
+      <div class="form-submit">
+        <button type="submit" class="btn btn-primary">SKICKA</button>
+        <span class="form-status" id="form-status" aria-live="polite"></span>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer class="page-footer">
+  <div>
+    <div class="footer-brand">INVOLVERA IF</div>
+    <div class="footer-meta">
+      Org.nr 802546-0307<br>
+      Helsingborg, Sverige<br>
+      kontakt@involvera.se
+    </div>
+  </div>
+  <nav class="footer-nav">
+    <a href="about.html">Om Oss</a>
+    <a href="activities.html">Aktiviteter</a>
+    <a href="contact.html">Kontakt</a>
+  </nav>
+</footer>
+
+<script src="js/pages.js"></script>
+<script>
+  (function () {
+    var form   = document.getElementById('contact-form');
+    var status = document.getElementById('form-status');
+    if (!form || !status) return;
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var name    = form.querySelector('#name').value.trim();
+      var email   = form.querySelector('#email').value.trim();
+      var message = form.querySelector('#message').value.trim();
+
+      if (!name || !email || !message) {
+        status.textContent = 'Fyll i alla obligatoriska fält.';
+        status.style.color = '#ff5555';
+        return;
+      }
+
+      var btn = form.querySelector('[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'SKICKAR…';
+      status.textContent = '';
+
+      setTimeout(function () {
+        form.reset();
+        btn.disabled = false;
+        btn.textContent = 'SKICKA';
+        status.style.color = 'var(--green)';
+        status.textContent = 'Meddelande skickat!';
+        setTimeout(function () { status.textContent = ''; }, 4500);
+      }, 900);
+    });
+  })();
+</script>
+</body>
+</html>
