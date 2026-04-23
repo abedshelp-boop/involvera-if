@@ -45,3 +45,5 @@ next-env.d.ts
 .next-preview/
 .claude/skills/
 /Involvera images/
+
+.vercel
