@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import CustomCursor from "@/components/layout/CustomCursor";
 import Header from "@/components/layout/Header";
 import ConvexProvider from "@/components/providers/ConvexProvider";
+import WhatsAppFAB from "@/components/ui/WhatsAppFAB";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,6 +38,7 @@ export default function RootLayout({
           <CustomCursor />
           <Header />
           {children}
+          <WhatsAppFAB />
         </ConvexProvider>
       </body>
     </html>

@@ -1606,18 +1606,47 @@ a.detail-value:hover {
   .hero-standalone {
     min-height: auto;
     height: auto;
-    padding-top: 5.5rem;
+    padding-top: 4.5rem;
     padding-bottom: 2.5rem;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     overflow: hidden;
+    position: relative;
+  }
+
+  .hero-image-wrap {
+    order: 1;
+    position: relative;
+    width: 100%;
+    height: 58vh;
+    min-height: 380px;
+    max-height: 560px;
+    margin: 0;
+    border-radius: 0;
+    overflow: hidden;
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-image-placeholder,
+  .hero-image-overlay {
+    border-radius: 0;
+  }
+
+  .hero-image-overlay {
+    background:
+      linear-gradient(to top, rgba(10, 10, 10, 0.92) 0%, rgba(10, 10, 10, 0.35) 30%, transparent 55%);
   }
 
   .hero-content {
+    order: 2;
+    position: relative;
     max-width: 100%;
-    padding-left: 5vw;
-    padding-right: 5vw;
-    margin-bottom: 1.5rem;
+    padding: 0 6vw;
+    margin-top: -7rem;
+    margin-bottom: 0.5rem;
+    z-index: 5;
+    pointer-events: none;
   }
 
   .hero-label {
@@ -1625,38 +1654,18 @@ a.detail-value:hover {
   }
 
   .hero-heading {
-    font-size: clamp(2.4rem, 12vw, 4rem);
-    margin-bottom: 0.8rem;
+    font-size: clamp(2.8rem, 13vw, 4.5rem);
+    color: var(--white);
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55);
+    margin-bottom: 0.6rem;
   }
 
   .hero-tagline {
-    font-size: 0.82rem;
-    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+    margin-bottom: 0;
     max-width: none;
-  }
-
-  .hero-image-wrap {
-    position: relative;
-    width: calc(100% - 10vw);
-    height: 65vw;
-    min-height: 220px;
-    max-height: 340px;
-    margin: 0 5vw;
-    border-radius: 16px;
-    overflow: hidden;
-    opacity: 1;
-    transform: none;
-  }
-
-  .hero-image-placeholder {
-    border-radius: 16px;
-  }
-
-  .hero-image-overlay {
-    border-radius: 16px;
-    background:
-      linear-gradient(to top, var(--black) 0%, rgba(10, 10, 10, 0.4) 30%, transparent 60%),
-      linear-gradient(to bottom, rgba(10, 10, 10, 0.25) 0%, transparent 15%);
   }
 
   .hero-watermark {
@@ -1664,6 +1673,7 @@ a.detail-value:hover {
   }
 
   .hero-card {
+    order: 3;
     position: relative;
     bottom: auto;
     left: auto;
@@ -1770,39 +1780,30 @@ a.detail-value:hover {
 
 @media (max-width: 480px) {
   .hero-standalone {
-    padding-top: 5rem;
+    padding-top: 4rem;
     padding-bottom: 2rem;
   }
 
   .hero-content {
-    padding-left: 5vw;
-    padding-right: 5vw;
-    margin-bottom: 1.2rem;
+    padding: 0 6vw;
+    margin-top: -5.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .hero-heading {
-    font-size: clamp(2.2rem, 11.5vw, 3.2rem);
-    margin-bottom: 0.6rem;
+    font-size: clamp(2.4rem, 12vw, 3.6rem);
+    margin-bottom: 0.5rem;
   }
 
   .hero-tagline {
-    font-size: 0.78rem;
-    margin-bottom: 1.2rem;
+    font-size: 0.82rem;
+    margin-bottom: 0;
   }
 
   .hero-image-wrap {
-    height: 70vw;
-    min-height: 200px;
-    max-height: 300px;
-    border-radius: 14px;
-  }
-
-  .hero-image-placeholder {
-    border-radius: 14px;
-  }
-
-  .hero-image-overlay {
-    border-radius: 14px;
+    height: 62vh;
+    min-height: 340px;
+    max-height: 500px;
   }
 
   .hero-card {
@@ -2100,4 +2101,274 @@ a.detail-value:hover {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* ─── Activities: desktop/mobile split ──────────── */
+.activities-desktop { display: flex; }
+.activities-mobile { display: none; }
+
+@media (max-width: 768px) {
+  .activities-desktop { display: none; }
+  .activities-hover-hint { display: none; }
+  .activities-mobile {
+    display: block;
+    width: 100%;
+    padding: 0 4vw;
+  }
+}
+
+.activity-cards-mobile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.activity-card-mobile {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 16px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-color: #111;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.activity-card-mobile-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(10, 10, 10, 0.92) 0%,
+    rgba(10, 10, 10, 0.55) 35%,
+    rgba(10, 10, 10, 0.1) 70%,
+    transparent 100%
+  );
+}
+
+.activity-card-mobile-body {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.9rem 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.activity-card-mobile-label {
+  font-family: var(--font-logo);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+
+.activity-card-mobile-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 5.5vw, 1.8rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: var(--white);
+  margin: 0.1rem 0 0.3rem;
+}
+
+.activity-card-mobile-desc {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 300;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 360px) {
+  .activity-card-mobile-body { padding: 0.75rem 0.75rem 0.8rem; }
+  .activity-card-mobile-desc { font-size: 0.68rem; -webkit-line-clamp: 2; }
+}
+
+/* ─── WhatsApp CTA section ──────────────────────── */
+.whatsapp-section {
+  width: 100%;
+  background: var(--black);
+  padding: 6rem 6vw;
+  display: flex;
+  justify-content: center;
+}
+
+.whatsapp-card {
+  width: 100%;
+  max-width: 900px;
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.08) 0%, rgba(20, 20, 20, 0.6) 60%);
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  border-radius: 22px;
+  padding: 2.8rem 2.6rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 2rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.whatsapp-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 6px rgba(37, 211, 102, 0.15);
+}
+
+.whatsapp-icon svg {
+  width: 40px;
+  height: 40px;
+  fill: #ffffff;
+}
+
+.whatsapp-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.whatsapp-eyebrow {
+  font-family: var(--font-logo);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #25D366;
+}
+
+.whatsapp-heading {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3.6vw, 2.6rem);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  color: var(--white);
+  margin: 0.25rem 0 0.4rem;
+}
+
+.whatsapp-body {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 300;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  max-width: 44ch;
+}
+
+.whatsapp-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.95rem 1.6rem;
+  background: #25D366;
+  color: #ffffff;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border-radius: 100px;
+  white-space: nowrap;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.25);
+}
+
+.whatsapp-cta:hover {
+  background: #1EBE5C;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 211, 102, 0.35);
+}
+
+.whatsapp-cta-arrow {
+  transition: transform 0.2s ease;
+}
+
+.whatsapp-cta:hover .whatsapp-cta-arrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 768px) {
+  .whatsapp-section {
+    padding: 4rem 5vw 6rem;
+  }
+
+  .whatsapp-card {
+    grid-template-columns: 1fr;
+    padding: 2rem 1.6rem;
+    gap: 1.25rem;
+    text-align: left;
+  }
+
+  .whatsapp-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .whatsapp-icon svg {
+    width: 30px;
+    height: 30px;
+  }
+
+  .whatsapp-body {
+    font-size: 0.85rem;
+  }
+
+  .whatsapp-cta {
+    align-self: flex-start;
+  }
+}
+
+/* ─── WhatsApp floating chat bubble ─────────────── */
+.whatsapp-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25D366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.35),
+              0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.whatsapp-fab:hover {
+  background: #1EBE5C;
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 12px 28px rgba(37, 211, 102, 0.45),
+              0 3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.whatsapp-fab svg {
+  width: 30px;
+  height: 30px;
+  fill: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .whatsapp-fab {
+    right: 14px;
+    bottom: 14px;
+    width: 52px;
+    height: 52px;
+  }
+  .whatsapp-fab svg { width: 28px; height: 28px; }
 }

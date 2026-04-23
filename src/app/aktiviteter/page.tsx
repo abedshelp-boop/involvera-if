@@ -5,6 +5,7 @@ import Link from "next/link";
 import BorderGlowButton from "@/components/ui/BorderGlowButton";
 import Footer from "@/components/layout/Footer";
 import ScrollReveal from "@/components/layout/ScrollReveal";
+import ActivityCardsMobile from "@/components/activities/ActivityCardsMobile";
 
 const BounceCards = dynamic(
   () => import("@/components/ui/BounceCards"),
@@ -85,7 +86,7 @@ export default function ActivitiesPage() {
         background: "var(--black)",
         minHeight: "80vh",
       }}>
-        <p style={{
+        <p className="activities-hover-hint" style={{
           fontSize: "clamp(0.8rem, 0.95vw, 0.95rem)",
           fontWeight: 300,
           color: "var(--dim)",
@@ -96,7 +97,7 @@ export default function ActivitiesPage() {
         }}>
           Håll muspekaren över korten
         </p>
-        <div style={{ position: "relative", width: "100%", display: "flex", justifyContent: "center" }}>
+        <div className="activities-desktop" style={{ position: "relative", width: "100%", justifyContent: "center" }}>
           <BounceCards
             images={activities.map((a) => a.image)}
             titles={activities.map((a) => a.title)}
@@ -105,6 +106,9 @@ export default function ActivitiesPage() {
             containerHeight={550}
             enableHover={true}
           />
+        </div>
+        <div className="activities-mobile">
+          <ActivityCardsMobile activities={activities} />
         </div>
       </section>
 
