@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
+import Link from "next/link";
+import BorderGlowButton from "@/components/ui/BorderGlowButton";
 import Footer from "@/components/layout/Footer";
 import ScrollReveal from "@/components/layout/ScrollReveal";
 
@@ -9,12 +13,15 @@ export default function ContactPage() {
   const [statusColor, setStatusColor] = useState("var(--green)");
   const [submitting, setSubmitting] = useState(false);
 
+  const sendMessage = useMutation(api.contactMessages.send);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
     const name = (formData.get("name") as string).trim();
     const email = (formData.get("email") as string).trim();
+    const phone = (formData.get("phone") as string)?.trim() || undefined;
     const message = (formData.get("message") as string).trim();
 
     if (!name || !email || !message) {
@@ -26,14 +33,18 @@ export default function ContactPage() {
     setSubmitting(true);
     setStatus("");
 
-    // TODO: Replace with Convex mutation when backend is set up
-    await new Promise((r) => setTimeout(r, 900));
-
-    form.reset();
-    setSubmitting(false);
-    setStatusColor("var(--green)");
-    setStatus("Meddelande skickat!");
-    setTimeout(() => setStatus(""), 4500);
+    try {
+      await sendMessage({ name, email, phone, message });
+      form.reset();
+      setStatusColor("var(--green)");
+      setStatus("Meddelande skickat!");
+      setTimeout(() => setStatus(""), 4500);
+    } catch {
+      setStatusColor("#ff5555");
+      setStatus("Något gick fel. Försök igen.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -129,13 +140,13 @@ export default function ContactPage() {
             </div>
 
             <div className="form-submit">
-              <button
+              <BorderGlowButton
+                variant="primary"
                 type="submit"
-                className="btn btn-primary"
                 disabled={submitting}
               >
                 {submitting ? "SKICKAR…" : "SKICKA"}
-              </button>
+              </BorderGlowButton>
               <span
                 className="form-status"
                 style={{ color: statusColor }}
@@ -147,6 +158,28 @@ export default function ContactPage() {
           </form>
         </div>
       </div>
+
+      {/* CTA */}
+      <section style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "5rem 8vw",
+        textAlign: "center",
+      }}>
+        <p className="reveal" style={{
+          fontSize: "clamp(0.85rem, 1vw, 1rem)",
+          fontWeight: 300,
+          color: "var(--dim)",
+          marginBottom: "2rem",
+          maxWidth: "48ch",
+          lineHeight: 1.8,
+        }}>
+          Vill du se vad vi erbjuder innan du hör av dig?
+        </p>
+        <BorderGlowButton variant="outline" href="/aktiviteter">Se Våra Aktiviteter</BorderGlowButton>
+      </section>
 
       <Footer />
     </>

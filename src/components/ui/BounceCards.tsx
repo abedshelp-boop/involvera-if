@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "@/lib/gsap";
 import "./BounceCards.css";
 
 interface BounceCardsProps {
   className?: string;
   images: string[];
+  titles?: string[];
+  descriptions?: string[];
   containerWidth?: number;
   containerHeight?: number;
   animationDelay?: number;
@@ -20,6 +22,8 @@ interface BounceCardsProps {
 export default function BounceCards({
   className = "",
   images = [],
+  titles = [],
+  descriptions = [],
   containerWidth = 400,
   containerHeight = 400,
   animationDelay = 0.5,
@@ -36,6 +40,7 @@ export default function BounceCards({
   onHover,
 }: BounceCardsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const cards = containerRef.current?.querySelectorAll(".card");
@@ -79,15 +84,20 @@ export default function BounceCards({
     if (!cards) return;
 
     cards.forEach((card, i) => {
+      const el = card as HTMLElement;
       if (i === hoveredIndex) {
+        el.style.zIndex = "10";
         gsap.to(card, {
           transform: getNoRotationTransform(transformStyles[i] || ""),
           duration: 0.3,
           ease: "back.out(1.7)",
         });
       } else {
+        el.style.zIndex = "1";
         const distance = Math.abs(i - hoveredIndex);
-        const pushDistance = 60 / distance;
+        // Each card gets a cumulative push: closer cards push more,
+        // but every card gets at least 80px so none hide behind others
+        const pushDistance = Math.max(80, 180 / distance) + (distance - 1) * 40;
         const direction = i < hoveredIndex ? -1 : 1;
         gsap.to(card, {
           transform: getPushedTransform(
@@ -107,6 +117,8 @@ export default function BounceCards({
     if (!cards) return;
 
     cards.forEach((card, i) => {
+      const el = card as HTMLElement;
+      el.style.zIndex = "";
       gsap.to(card, {
         transform: transformStyles[i] || "",
         duration: 0.3,
@@ -128,18 +140,25 @@ export default function BounceCards({
           style={{ transform: transformStyles[i] || "" }}
           onMouseEnter={() => {
             if (enableHover) {
+              setHoveredIndex(i);
               pushSiblings(i);
               onHover?.(i);
             }
           }}
           onMouseLeave={() => {
             if (enableHover) {
+              setHoveredIndex(null);
               resetSiblings();
               onHover?.(null);
             }
           }}
         >
           <img className="image" src={src} alt="" />
+          {/* Hover overlay with title + description */}
+          <div className={`card-overlay${hoveredIndex === i ? " card-overlay--active" : ""}`}>
+            {titles[i] && <span className="card-overlay-title">{titles[i]}</span>}
+            {descriptions[i] && <p className="card-overlay-desc">{descriptions[i]}</p>}
+          </div>
         </div>
       ))}
     </div>

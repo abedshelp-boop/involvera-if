@@ -124,7 +124,9 @@ export default function DomeGallery({
   openedImageHeight = '350px',
   imageBorderRadius = '30px',
   openedImageBorderRadius = '30px',
-  grayscale = true
+  grayscale = true,
+  autoRotate = false,
+  autoRotateSpeed = 0.15
 }) {
   const rootRef = useRef(null);
   const mainRef = useRef(null);
@@ -298,7 +300,7 @@ export default function DomeGallery({
   );
 
   useGesture(
-    {
+    autoRotate ? {} : {
       onDragStart: ({ event }) => {
         if (focusedElRef.current) return;
         stopInertia();
@@ -346,6 +348,24 @@ export default function DomeGallery({
     },
     { target: mainRef, eventOptions: { passive: true } }
   );
+
+  // Auto-rotate effect
+  const autoRotateRAF = useRef(null);
+  useEffect(() => {
+    if (!autoRotate) return;
+    const step = () => {
+      rotationRef.current = {
+        x: rotationRef.current.x,
+        y: wrapAngleSigned(rotationRef.current.y + autoRotateSpeed)
+      };
+      applyTransform(rotationRef.current.x, rotationRef.current.y);
+      autoRotateRAF.current = requestAnimationFrame(step);
+    };
+    autoRotateRAF.current = requestAnimationFrame(step);
+    return () => {
+      if (autoRotateRAF.current) cancelAnimationFrame(autoRotateRAF.current);
+    };
+  }, [autoRotate, autoRotateSpeed]);
 
   useEffect(() => {
     const scrim = scrimRef.current;
@@ -604,7 +624,7 @@ export default function DomeGallery({
         ['--image-filter']: grayscale ? 'grayscale(1)' : 'none'
       }}
     >
-      <main ref={mainRef} className="sphere-main">
+      <main ref={mainRef} className="sphere-main" style={autoRotate ? { pointerEvents: 'none' } : undefined}>
         <div className="stage">
           <div ref={sphereRef} className="sphere">
             {items.map((it, i) => (
@@ -628,8 +648,8 @@ export default function DomeGallery({
                   role="button"
                   tabIndex={0}
                   aria-label={it.alt || 'Open image'}
-                  onClick={onTileClick}
-                  onPointerUp={onTilePointerUp}
+                  onClick={autoRotate ? undefined : onTileClick}
+                  onPointerUp={autoRotate ? undefined : onTilePointerUp}
                 >
                   <img src={it.src} draggable={false} alt={it.alt} />
                 </div>

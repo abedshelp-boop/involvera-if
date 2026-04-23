@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "blender": {
+      "command": "C:\\Users\\Abeds\\.local\\bin\\uvx.exe",
+      "args": ["blender-mcp"],
+      "env": {
+        "DISABLE_TELEMETRY": "true"
+      }
+    }
+  }
+}

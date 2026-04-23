@@ -8,23 +8,26 @@ const CircularGallery = dynamic(
 );
 
 const galleryItems = [
-  { image: "/assets/celebrating_goal.jpg", text: "Firande" },
-  { image: "/assets/shooting_ball.jpg", text: "Fotboll" },
-  { image: "/assets/ready_to_shoot.jpg", text: "Redo" },
-  { image: "/assets/ball.jpg", text: "Bollen" },
-  { image: "/assets/boss_shooting_ref.jpg", text: "Träning" },
-  { image: "/assets/boss.jpg", text: "Involvera" },
+  { image: "/involvera-images/1.jpg", text: "" },
+  { image: "/involvera-images/2.jpg", text: "" },
+  { image: "/involvera-images/3.jpg", text: "" },
+  { image: "/involvera-images/4.jpg", text: "" },
+  { image: "/involvera-images/5.jpg", text: "" },
+  { image: "/involvera-images/6.jpg", text: "" },
+  { image: "/involvera-images/7.jpg", text: "" },
 ];
 
 export default function AboutGallery() {
   return (
-    <section style={{ height: 500, width: "100%", background: "#0a0a0a" }}>
+    <section style={{ height: 500, width: "100%", background: "#0a0a0a", pointerEvents: "none" }}>
       <CircularGallery
         items={galleryItems}
         bend={3}
         textColor="#ffffff"
         borderRadius={0.05}
         font="bold 24px DM Sans"
+        autoScroll={true}
+        autoScrollSpeed={0.03}
       />
     </section>
   );

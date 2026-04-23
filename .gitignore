@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.superdesign
+
+# local-only
+.next-preview/
+.claude/skills/
+/Involvera images/

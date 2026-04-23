@@ -40,7 +40,7 @@ export default function Header() {
     <>
       <nav className={navClass}>
         <Link href="/" className="nav-logo">
-          INVOLVERA IF
+          Involvera IF
         </Link>
         <ul className="nav-links">
           {navItems.map((item) => (

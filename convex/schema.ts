@@ -9,4 +9,11 @@ export default defineSchema({
     message: v.string(),
     read: v.boolean(),
   }).index("by_read", ["read"]),
+
+  eventSignups: defineTable({
+    name: v.string(),
+    email: v.string(),
+    phone: v.string(),
+    age: v.number(),
+  }),
 });

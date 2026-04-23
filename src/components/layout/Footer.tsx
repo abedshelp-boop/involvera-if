@@ -4,7 +4,7 @@ export default function Footer() {
   return (
     <footer className="page-footer">
       <div>
-        <div className="footer-brand">INVOLVERA IF</div>
+        <div className="footer-brand">Involvera IF</div>
         <div className="footer-meta">
           Org.nr 802546-0307
           <br />

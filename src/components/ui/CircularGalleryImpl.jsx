@@ -163,9 +163,11 @@ class Media {
 }
 
 class App {
-  constructor(container, { items, bend, textColor = '#ffffff', borderRadius = 0, font = 'bold 30px DM Sans', scrollSpeed = 2, scrollEase = 0.05 } = {}) {
+  constructor(container, { items, bend, textColor = '#ffffff', borderRadius = 0, font = 'bold 30px DM Sans', scrollSpeed = 2, scrollEase = 0.05, autoScroll = false, autoScrollSpeed = 0.5 } = {}) {
     this.container = container;
     this.scrollSpeed = scrollSpeed;
+    this.autoScroll = autoScroll;
+    this.autoScrollSpeed = autoScrollSpeed;
     this.scroll = { ease: scrollEase, current: 0, target: 0, last: 0 };
     this.onCheckDebounce = debounce(this.onCheck.bind(this), 200);
     this.createRenderer();
@@ -212,7 +214,12 @@ class App {
     if (this.medias) this.medias.forEach(media => media.onResize({ screen: this.screen, viewport: this.viewport }));
   }
   update() {
-    this.scroll.current = lerp(this.scroll.current, this.scroll.target, this.scroll.ease);
+    if (this.autoScroll) {
+      this.scroll.target += this.autoScrollSpeed;
+      this.scroll.current = this.scroll.target;
+    } else {
+      this.scroll.current = lerp(this.scroll.current, this.scroll.target, this.scroll.ease);
+    }
     const direction = this.scroll.current > this.scroll.last ? 'right' : 'left';
     if (this.medias) this.medias.forEach(media => media.update(this.scroll, direction));
     this.renderer.render({ scene: this.scene, camera: this.camera });
@@ -221,42 +228,49 @@ class App {
   }
   addEventListeners() {
     this.boundOnResize = this.onResize.bind(this);
-    this.boundOnWheel = this.onWheel.bind(this);
-    this.boundOnTouchDown = this.onTouchDown.bind(this);
-    this.boundOnTouchMove = this.onTouchMove.bind(this);
-    this.boundOnTouchUp = this.onTouchUp.bind(this);
     window.addEventListener('resize', this.boundOnResize);
-    window.addEventListener('mousewheel', this.boundOnWheel);
-    window.addEventListener('wheel', this.boundOnWheel);
-    window.addEventListener('mousedown', this.boundOnTouchDown);
-    window.addEventListener('mousemove', this.boundOnTouchMove);
-    window.addEventListener('mouseup', this.boundOnTouchUp);
-    window.addEventListener('touchstart', this.boundOnTouchDown);
-    window.addEventListener('touchmove', this.boundOnTouchMove);
-    window.addEventListener('touchend', this.boundOnTouchUp);
+
+    if (!this.autoScroll) {
+      this.boundOnWheel = this.onWheel.bind(this);
+      this.boundOnTouchDown = this.onTouchDown.bind(this);
+      this.boundOnTouchMove = this.onTouchMove.bind(this);
+      this.boundOnTouchUp = this.onTouchUp.bind(this);
+      window.addEventListener('mousewheel', this.boundOnWheel);
+      window.addEventListener('wheel', this.boundOnWheel);
+      window.addEventListener('mousedown', this.boundOnTouchDown);
+      window.addEventListener('mousemove', this.boundOnTouchMove);
+      window.addEventListener('mouseup', this.boundOnTouchUp);
+      window.addEventListener('touchstart', this.boundOnTouchDown);
+      window.addEventListener('touchmove', this.boundOnTouchMove);
+      window.addEventListener('touchend', this.boundOnTouchUp);
+    }
   }
   destroy() {
     window.cancelAnimationFrame(this.raf);
     window.removeEventListener('resize', this.boundOnResize);
-    window.removeEventListener('mousewheel', this.boundOnWheel);
-    window.removeEventListener('wheel', this.boundOnWheel);
-    window.removeEventListener('mousedown', this.boundOnTouchDown);
-    window.removeEventListener('mousemove', this.boundOnTouchMove);
-    window.removeEventListener('mouseup', this.boundOnTouchUp);
-    window.removeEventListener('touchstart', this.boundOnTouchDown);
-    window.removeEventListener('touchmove', this.boundOnTouchMove);
-    window.removeEventListener('touchend', this.boundOnTouchUp);
+    if (this.boundOnWheel) {
+      window.removeEventListener('mousewheel', this.boundOnWheel);
+      window.removeEventListener('wheel', this.boundOnWheel);
+    }
+    if (this.boundOnTouchDown) {
+      window.removeEventListener('mousedown', this.boundOnTouchDown);
+      window.removeEventListener('mousemove', this.boundOnTouchMove);
+      window.removeEventListener('mouseup', this.boundOnTouchUp);
+      window.removeEventListener('touchstart', this.boundOnTouchDown);
+      window.removeEventListener('touchmove', this.boundOnTouchMove);
+      window.removeEventListener('touchend', this.boundOnTouchUp);
+    }
     if (this.renderer && this.renderer.gl && this.renderer.gl.canvas.parentNode) {
       this.renderer.gl.canvas.parentNode.removeChild(this.renderer.gl.canvas);
     }
   }
 }
 
-export default function CircularGallery({ items, bend = 3, textColor = '#ffffff', borderRadius = 0.05, font = 'bold 30px DM Sans', scrollSpeed = 2, scrollEase = 0.05 }) {
+export default function CircularGallery({ items, bend = 3, textColor = '#ffffff', borderRadius = 0.05, font = 'bold 30px DM Sans', scrollSpeed = 2, scrollEase = 0.05, autoScroll = false, autoScrollSpeed = 0.5 }) {
   const containerRef = useRef(null);
   useEffect(() => {
-    const app = new App(containerRef.current, { items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase });
+    const app = new App(containerRef.current, { items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase, autoScroll, autoScrollSpeed });
     return () => app.destroy();
-  }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase]);
-  return <div className="circular-gallery" ref={containerRef} />;
+  }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase, autoScroll, autoScrollSpeed]);
+  return <div className="circular-gallery" ref={containerRef} style={{ pointerEvents: autoScroll ? 'none' : undefined }} />;
 }

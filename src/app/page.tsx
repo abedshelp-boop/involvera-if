@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type FormEvent } from "react";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import Link from "next/link";
 import Lenis from "lenis";
-
-/* ── CONFIG ────────────────────────────────────── */
-const FRAME_COUNT = 121;
-const FRAME_SPEED = 2.0;
-const IMAGE_SCALE = 0.85;
+import BorderGlowButton from "@/components/ui/BorderGlowButton";
+import BorderGlowCard from "@/components/ui/BorderGlowCard";
 
 /* ── SCROLL SECTIONS DATA ──────────────────────── */
 const sections = [
@@ -46,107 +45,126 @@ const sections = [
   },
 ];
 
+/* ── SPORT CARD DATA ────────────────────────────── */
+const sportCards = [
+  { icon: "⚽", label: "Fotboll", href: "/aktiviteter" },
+  { icon: "♿", label: "Parasport", href: "/aktiviteter" },
+  { icon: "💪", label: "Calisthenics", href: "/aktiviteter" },
+];
+
+/* ── MOSAIC SLOTS ───────────────────────────────── */
+/* 12 surrounding slots (center is feature card with overlay, no image).
+   Image numbers chosen so no duplicate sits adjacent. */
+const mosaicSlots: { cls: string; img: number }[] = [
+  { cls: "mosaic-r1-1", img: 1 },
+  { cls: "mosaic-r1-2", img: 2 },
+  { cls: "mosaic-r1-3", img: 3 },
+  { cls: "mosaic-r1-4", img: 4 },
+  { cls: "mosaic-r1-5", img: 5 },
+  { cls: "mosaic-r2-1", img: 6 },
+  { cls: "mosaic-r2-3", img: 7 },
+  { cls: "mosaic-r3-1", img: 1 },
+  { cls: "mosaic-r3-2", img: 3 },
+  { cls: "mosaic-r3-3", img: 5 },
+  { cls: "mosaic-r3-4", img: 2 },
+  { cls: "mosaic-r3-5", img: 4 },
+];
+
+/* ── FAQ DATA ──────────────────────────────────── */
+const faqItems = [
+  {
+    question: "Hur blir jag medlem i Involvera IF?",
+    answer:
+      "Du kan bli medlem genom att fylla i kontaktformuläret på vår hemsida eller kontakta oss direkt via e-post eller telefon. Vi välkomnar alla oavsett ålder, bakgrund eller erfarenhet.",
+  },
+  {
+    question: "Vilka tider och dagar tränar vi?",
+    answer:
+      "Vi har träningar flera gånger i veckan. Fotboll: tisdagar och torsdagar kl 17–19. Calisthenics: måndagar och onsdagar kl 16–18. Parasport: lördagar kl 10–12. Kontakta oss för aktuellt schema.",
+  },
+  {
+    question: "Var ligger våra träningsplaner och lokaler?",
+    answer:
+      "Vi tränar på flera platser i Helsingborg. Fotbollsträningarna sker på Olympia IP och våra calisthenics-pass hålls i utomhusparken vid Pålsjö. Kontakta oss för exakt adress och vägbeskrivning.",
+  },
+  {
+    question: "Kostar det något att vara med?",
+    answer:
+      "Vi håller våra avgifter så låga som möjligt för att alla ska kunna delta. Medlemsavgiften är 200 kr per termin. Vi erbjuder även möjlighet till reducerad avgift vid behov — ingen ska behöva stå utanför.",
+  },
+  {
+    question: "Behöver jag ha erfarenhet för att börja?",
+    answer:
+      "Absolut inte! Alla är välkomna oavsett nivå. Våra tränare anpassar övningarna efter varje deltagares förutsättningar. Det viktigaste är att du vill röra på dig och ha kul.",
+  },
+  {
+    question: "Hur kan jag engagera mig som volontär eller tränare?",
+    answer:
+      "Vi söker alltid engagerade personer som vill bidra. Kontakta oss via kontakt@involvera.se eller ring 070-713 05 08 så berättar vi mer om hur du kan hjälpa till.",
+  },
+];
+
 export default function HomePage() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const marqueeRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const ctaRef = useRef<HTMLDivElement>(null);
-  const framesRef = useRef<(HTMLImageElement | null)[]>(new Array(FRAME_COUNT).fill(null));
-  const currentFrameRef = useRef(0);
+  const homeCTARef = useRef<HTMLDivElement>(null);
+  const mosaicRef = useRef<HTMLElement>(null);
+  const faqRef = useRef<HTMLElement>(null);
+  const signupRef = useRef<HTMLElement>(null);
 
-  const [loaded, setLoaded] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
-  const [loadCount, setLoadCount] = useState(0);
-
-  /* ── Draw Frame ──────────────────────────────── */
-  const drawFrame = useCallback((index: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const img = framesRef.current[index];
-    const cw = window.innerWidth;
-    const ch = window.innerHeight;
-
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, cw, ch);
-
-    if (!img || !img.complete) return;
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
-    if (!iw || !ih) return;
-
-    const scale = Math.max(cw / iw, ch / ih) * IMAGE_SCALE;
-    const dw = iw * scale;
-    const dh = ih * scale;
-    const dx = (cw - dw) / 2;
-    const dy = (ch - dh) / 2;
-    ctx.drawImage(img, dx, dy, dw, dh);
+  /* ── FAQ accordion ──────────────────────────────── */
+  const [openFaq, setOpenFaq] = useState(0);
+  const toggleFaq = useCallback((i: number) => {
+    setOpenFaq((prev) => (prev === i ? -1 : i));
   }, []);
 
-  /* ── Resize Canvas ───────────────────────────── */
-  const resizeCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + "px";
-    canvas.style.height = window.innerHeight + "px";
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.scale(dpr, dpr);
-    drawFrame(currentFrameRef.current);
-  }, [drawFrame]);
+  /* ── Event signup form ─────────────────────────── */
+  const [signupStatus, setSignupStatus] = useState("");
+  const [signupStatusColor, setSignupStatusColor] = useState("var(--green)");
+  const [signupSubmitting, setSignupSubmitting] = useState(false);
+  const eventSignup = useMutation(api.eventSignups.signup);
 
-  /* ── Preload Frames ──────────────────────────── */
-  useEffect(() => {
-    let count = 0;
+  const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const name = (formData.get("signup-name") as string).trim();
+    const email = (formData.get("signup-email") as string).trim();
+    const phone = (formData.get("signup-phone") as string).trim();
+    const ageStr = (formData.get("signup-age") as string).trim();
+    const age = parseInt(ageStr, 10);
 
-    const loadFrame = (i: number): Promise<void> => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        const num = String(i + 1).padStart(4, "0");
-        img.src = `/frames/frame_${num}.webp`;
-        img.onload = img.onerror = () => {
-          framesRef.current[i] = img;
-          count++;
-          setLoadCount(count);
-          setLoadProgress(Math.round((count / FRAME_COUNT) * 100));
-          resolve();
-        };
-      });
-    };
+    if (!name || !email || !phone || !ageStr) {
+      setSignupStatus("Fyll i alla fält.");
+      setSignupStatusColor("#ff5555");
+      return;
+    }
+    if (isNaN(age) || age < 1 || age > 120) {
+      setSignupStatus("Ange en giltig ålder.");
+      setSignupStatusColor("#ff5555");
+      return;
+    }
 
-    const preload = async () => {
-      resizeCanvas();
-
-      // Phase 1: first 10 frames
-      const phase1 = [];
-      for (let i = 0; i < 10; i++) phase1.push(loadFrame(i));
-      await Promise.all(phase1);
-      drawFrame(0);
-
-      // Phase 2: remaining
-      const phase2 = [];
-      for (let i = 10; i < FRAME_COUNT; i++) phase2.push(loadFrame(i));
-      await Promise.all(phase2);
-
-      setTimeout(() => setLoaded(true), 700);
-    };
-
-    preload();
-    window.addEventListener("resize", resizeCanvas);
-    return () => window.removeEventListener("resize", resizeCanvas);
-  }, [resizeCanvas, drawFrame]);
+    setSignupSubmitting(true);
+    setSignupStatus("");
+    try {
+      await eventSignup({ name, email, phone, age });
+      form.reset();
+      setSignupStatusColor("var(--green)");
+      setSignupStatus("Anmälan skickad!");
+      setTimeout(() => setSignupStatus(""), 4500);
+    } catch {
+      setSignupStatusColor("#ff5555");
+      setSignupStatus("Något gick fel. Försök igen.");
+    } finally {
+      setSignupSubmitting(false);
+    }
+  };
 
   /* ── GSAP + Lenis Init ───────────────────────── */
   useEffect(() => {
-    if (!loaded) return;
-
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -157,14 +175,17 @@ export default function HomePage() {
     gsap.ticker.add((time: number) => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
 
-    // Hero entrance animation
+    /* Hero entrance animation */
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
     tl.to(".hero-label", { opacity: 1, y: 0, duration: 0.65, delay: 0.15 });
     tl.to(".word", { y: "0%", duration: 0.85, stagger: 0.1 }, "-=0.35");
     tl.to(".hero-tagline", { opacity: 1, y: 0, duration: 0.6 }, "-=0.4");
-    tl.to(".hero-buttons", { opacity: 1, y: 0, duration: 0.6 }, "-=0.35");
+    tl.to(".hero-image-wrap", { opacity: 1, x: 0, duration: 0.9 }, "-=0.7");
+    tl.to(".hero-card", { opacity: 1, y: 0, duration: 0.6 }, "-=0.4");
+    tl.to(".hero-members", { opacity: 1, y: 0, duration: 0.5 }, "-=0.3");
+    tl.to(".hero-watermark", { opacity: 1, scale: 1, duration: 0.8 }, "-=0.6");
 
-    // Canvas frame scroll + circle wipe + hero fade
+    /* Scroll-driven animations */
     const container = scrollContainerRef.current;
     if (container) {
       ScrollTrigger.create({
@@ -175,40 +196,17 @@ export default function HomePage() {
         onUpdate: (self) => {
           const p = self.progress;
 
-          // Frame scrubber
-          const accelerated = Math.min(p * FRAME_SPEED, 1);
-          const index = Math.min(
-            Math.floor(accelerated * FRAME_COUNT),
-            FRAME_COUNT - 1
-          );
-          if (index !== currentFrameRef.current) {
-            currentFrameRef.current = index;
-            requestAnimationFrame(() => drawFrame(currentFrameRef.current));
-          }
-
           // Hero fades out
           if (heroRef.current) {
             heroRef.current.style.opacity = String(Math.max(0, 1 - p * 15));
           }
 
-          // Circle wipe
-          let radius: number;
-          if (p < 0.01) radius = 0;
-          else if (p < 0.07) radius = ((p - 0.01) / 0.06) * 75;
-          else if (p < 0.85) radius = 75;
-          else if (p < 0.95) radius = 75 * (1 - (p - 0.85) / 0.1);
-          else radius = 0;
-
-          if (canvasWrapRef.current) {
-            canvasWrapRef.current.style.clipPath = `circle(${radius}% at 50% 50%)`;
-          }
-
-          // Marquee opacity
+          // Marquee opacity — only visible while sections are on screen
           if (marqueeRef.current) {
             let opacity = 0;
-            if (p >= 0.28 && p < 0.33) opacity = (p - 0.28) / 0.05;
-            else if (p >= 0.33 && p < 0.82) opacity = 1;
-            else if (p >= 0.82 && p < 0.87) opacity = 1 - (p - 0.82) / 0.05;
+            if (p >= 0.05 && p < 0.10) opacity = (p - 0.05) / 0.05;
+            else if (p >= 0.10 && p < 0.50) opacity = 1;
+            else if (p >= 0.50 && p < 0.55) opacity = 1 - (p - 0.50) / 0.05;
             marqueeRef.current.style.opacity = String(opacity);
           }
         },
@@ -239,7 +237,7 @@ export default function HomePage() {
       ScrollTrigger.create({
         trigger: section,
         start: "top top",
-        end: "+=100%",
+        end: "+=150%",
         pin: true,
         pinSpacing: true,
         scrub: true,
@@ -281,24 +279,106 @@ export default function HomePage() {
       });
     });
 
-    // CTA section pin
-    if (ctaRef.current) {
-      const ctaInner = ctaRef.current.querySelector(
-        ".cta-inner"
-      ) as HTMLElement;
+    // Mosaic entrance animation — pinned + scroll-scrubbed reveal
+    if (mosaicRef.current) {
+      const mosaicItems = Array.from(
+        mosaicRef.current.querySelectorAll<HTMLElement>(".mosaic-item")
+      );
+      gsap.set(mosaicItems, { opacity: 0, y: 60, filter: "blur(8px)" });
+
       ScrollTrigger.create({
-        trigger: ctaRef.current,
+        trigger: mosaicRef.current,
         start: "top top",
-        end: "+=80%",
+        end: "+=150%",
         pin: true,
         pinSpacing: true,
         scrub: true,
         onUpdate: (self) => {
-          if (ctaInner) {
-            const e = easeOut(self.progress);
-            ctaInner.style.clipPath = `inset(0 ${(1 - e) * 100}% 0 0)`;
-            ctaInner.style.opacity = "1";
-          }
+          const progress = self.progress;
+          const count = mosaicItems.length;
+          const spread = 0.75;
+          const span = 0.35;
+          mosaicItems.forEach((item, i) => {
+            const staggerDelay =
+              count > 1 ? (i / (count - 1)) * spread : 0;
+            const raw = (progress - staggerDelay) / span;
+            const e = easeOut(Math.max(0, Math.min(1, raw)));
+            item.style.opacity = String(e);
+            item.style.transform = `translateY(${(1 - e) * 60}px)`;
+            item.style.filter = `blur(${(1 - e) * 8}px)`;
+          });
+        },
+      });
+    }
+
+    // Home CTA fade-in
+    if (homeCTARef.current) {
+      const ctaChildren = Array.from(
+        homeCTARef.current.children
+      ) as HTMLElement[];
+      ScrollTrigger.create({
+        trigger: homeCTARef.current,
+        start: "top 80%",
+        end: "top 30%",
+        scrub: true,
+        onUpdate: (self) => {
+          ctaChildren.forEach((child, ci) => {
+            const stagger = ci * 0.15;
+            const raw = Math.max(0, (self.progress - stagger) / (1 - stagger));
+            const e = easeOut(raw);
+            child.style.opacity = String(e);
+            child.style.transform = `translateY(${(1 - e) * 40}px)`;
+          });
+        },
+      });
+    }
+
+    // FAQ staggered entrance
+    if (faqRef.current) {
+      const faqHeader = faqRef.current.querySelector(".faq-header");
+      const faqItemEls = faqRef.current.querySelectorAll(".faq-item");
+
+      ScrollTrigger.create({
+        trigger: faqRef.current,
+        start: "top 80%",
+        once: true,
+        onEnter: () => {
+          gsap.to(faqHeader, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power3.out",
+          });
+          gsap.to(faqItemEls, {
+            opacity: 1,
+            y: 0,
+            duration: 0.5,
+            ease: "power3.out",
+            stagger: 0.08,
+            delay: 0.2,
+          });
+        },
+      });
+    }
+
+    // Event signup entrance
+    if (signupRef.current) {
+      const signupChildren = signupRef.current.querySelectorAll(
+        ".event-signup-section > div > *"
+      );
+
+      ScrollTrigger.create({
+        trigger: signupRef.current,
+        start: "top 80%",
+        once: true,
+        onEnter: () => {
+          gsap.to(signupChildren, {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+            ease: "power3.out",
+            stagger: 0.1,
+          });
         },
       });
     }
@@ -307,27 +387,10 @@ export default function HomePage() {
       ScrollTrigger.getAll().forEach((t) => t.kill());
       lenis.destroy();
     };
-  }, [loaded, drawFrame]);
+  }, []);
 
   return (
     <>
-      {/* LOADER */}
-      <div
-        id="loader"
-        className={loaded ? "hidden" : ""}
-        aria-hidden="true"
-      >
-        <div className="loader-brand">
-          INVOLVERA<span>&nbsp;IF</span>
-        </div>
-        <div className="loader-progress-wrap">
-          <div id="loader-bar" style={{ width: `${loadProgress}%` }} />
-        </div>
-        <div className="loader-count">
-          {loadCount} / {FRAME_COUNT}
-        </div>
-      </div>
-
       {/* HERO */}
       <section
         className="hero-standalone"
@@ -335,8 +398,14 @@ export default function HomePage() {
         ref={heroRef}
         aria-label="Hero"
       >
+        {/* Watermark brand text behind everything */}
+        <div className="hero-watermark" aria-hidden="true">
+          INVOLVERA
+        </div>
+
+        {/* Left: text content */}
         <div className="hero-content">
-          <p className="hero-label">INVOLVERA IF</p>
+          <p className="hero-label">Involvera IF</p>
           <h1 className="hero-heading">
             <div className="word-line">
               <span className="word-wrap">
@@ -350,21 +419,60 @@ export default function HomePage() {
               <span className="word-wrap accent-word">
                 <span className="word">ALLA</span>
               </span>
+              <span className="word-wrap">
+                <span className="word hero-period">.</span>
+              </span>
             </div>
           </h1>
           <p className="hero-tagline">
             En inkluderande idrottsförening i Helsingborg
           </p>
-          <div className="hero-buttons">
-            <Link href="/kontakt" className="btn btn-primary">
-              Bli Medlem
-            </Link>
-            <Link href="/om-oss" className="btn btn-outline">
-              Läs Mer
-            </Link>
+        </div>
+
+        {/* Right: hero image */}
+        <div className="hero-image-wrap">
+          <div
+            className="hero-image-placeholder"
+            style={{
+              backgroundImage: "url('/involvera-images/5.jpg')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          <div className="hero-image-overlay" />
+        </div>
+
+        {/* Bottom-left: sport card widget */}
+        <div className="hero-card">
+          <p className="hero-card-label">Involvera IF</p>
+          <p className="hero-card-question">Vilken sport passar dig?</p>
+          <div className="hero-card-pills">
+            {sportCards.map((s) => (
+              <Link key={s.label} href={s.href} className="hero-card-pill">
+                <span className="hero-card-pill-icon">{s.icon}</span>
+                {s.label}
+              </Link>
+            ))}
+          </div>
+          <Link href="/aktiviteter" className="hero-card-link">
+            Utforska →
+          </Link>
+        </div>
+
+        {/* Bottom-right: member badge */}
+        <div className="hero-members">
+          <div className="hero-members-avatars">
+            <div className="hero-avatar" style={{ background: "#2ECC40" }} />
+            <div className="hero-avatar" style={{ background: "#27ae32" }} />
+            <div className="hero-avatar" style={{ background: "#1a8a25" }} />
+          </div>
+          <div className="hero-members-text">
+            <span className="hero-members-count">200+</span>
+            <span className="hero-members-label">Medlemmar</span>
           </div>
         </div>
 
+        {/* Scroll indicator */}
         <div className="scroll-arrow" aria-hidden="true">
           <svg
             width="24"
@@ -392,11 +500,6 @@ export default function HomePage() {
           </svg>
         </div>
       </section>
-
-      {/* CANVAS */}
-      <div className="canvas-wrap" ref={canvasWrapRef}>
-        <canvas id="home-canvas" ref={canvasRef} />
-      </div>
 
       {/* MARQUEE */}
       <div className="marquee-wrap" ref={marqueeRef} aria-hidden="true">
@@ -431,30 +534,174 @@ export default function HomePage() {
           </div>
         ))}
 
-        {/* CTA */}
-        <div
-          className="scroll-section cta-section"
-          data-animation="clip-reveal"
-          ref={ctaRef}
-        >
-          <div className="cta-inner">
-            <h2 className="cta-heading">
-              REDO ATT
-              <br />
-              GÅ MED?
-            </h2>
-            <p className="cta-sub">Bli en del av Involvera IF idag.</p>
-            <Link href="/kontakt" className="btn btn-primary btn-large">
-              Kontakta Oss
-            </Link>
-            <div className="cta-contacts">
-              <span>kontakt@involvera.se</span>
-              <span className="cta-sep">|</span>
-              <span>070-713 05 08</span>
+        {/* MOSAIC COMMUNITY GRID */}
+        <section className="mosaic-section" ref={mosaicRef}>
+          <div className="mosaic-container">
+            <div className="mosaic-grid">
+              {mosaicSlots.slice(0, 6).map(({ cls, img }) => (
+                <BorderGlowCard key={cls} className={`mosaic-item ${cls}`}>
+                  <div
+                    className="mosaic-img"
+                    style={{
+                      backgroundImage: `url('/involvera-images/${img}.jpg')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                </BorderGlowCard>
+              ))}
+
+              {/* Center feature card — stays imageless, holds the overlay text */}
+              <BorderGlowCard className="mosaic-item mosaic-feature">
+                <div className="mosaic-img" />
+                <div className="mosaic-feature-overlay">
+                  <span className="mosaic-feature-text">GÅ MED I LAGET</span>
+                </div>
+              </BorderGlowCard>
+
+              {mosaicSlots.slice(6).map(({ cls, img }) => (
+                <BorderGlowCard key={cls} className={`mosaic-item ${cls}`}>
+                  <div
+                    className="mosaic-img"
+                    style={{
+                      backgroundImage: `url('/involvera-images/${img}.jpg')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  />
+                </BorderGlowCard>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* CTA */}
+        <section className="home-cta" ref={homeCTARef}>
+          <h2 className="home-cta-heading">
+            REDO ATT
+            <br />
+            GÅ MED?
+          </h2>
+          <p className="home-cta-sub">Bli en del av Involvera IF idag.</p>
+          <BorderGlowButton variant="primary" size="large" href="/kontakt">
+            Kontakta Oss
+          </BorderGlowButton>
+          <div className="home-cta-contacts">
+            <span>kontakt@involvera.se</span>
+            <span className="home-cta-sep">|</span>
+            <span>070-713 05 08</span>
+          </div>
+        </section>
       </div>
+
+      {/* Event Signup Section */}
+      <section
+        className="event-signup-section"
+        ref={signupRef}
+        style={{
+          padding: "6rem 8vw",
+          background: "var(--black)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ maxWidth: 640, width: "100%", textAlign: "center" }}>
+          <span style={{
+            fontFamily: "var(--font-body)",
+            fontSize: "0.62rem",
+            fontWeight: 500,
+            letterSpacing: "0.28em",
+            textTransform: "uppercase",
+            color: "var(--green)",
+            marginBottom: "1.5rem",
+            display: "block",
+          }}>
+            Kommande evenemang
+          </span>
+          <h2 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
+            lineHeight: 0.92,
+            color: "var(--white)",
+            marginBottom: "1.2rem",
+          }}>
+            ANMÄL DIG
+          </h2>
+          <p style={{
+            fontSize: "clamp(0.85rem, 1vw, 1rem)",
+            fontWeight: 300,
+            color: "var(--dim)",
+            marginBottom: "3rem",
+            lineHeight: 1.8,
+          }}>
+            Anmäl dig till våra kommande aktiviteter och evenemang.
+            Fyll i formuläret så kontaktar vi dig med mer information.
+          </p>
+
+          <form className="contact-form" onSubmit={handleSignup} noValidate style={{ textAlign: "left" }}>
+            <div className="form-row">
+              <div className="form-field">
+                <label htmlFor="signup-name">Namn</label>
+                <input type="text" id="signup-name" name="signup-name" placeholder="Ditt namn" required />
+              </div>
+              <div className="form-field">
+                <label htmlFor="signup-email">E-post</label>
+                <input type="email" id="signup-email" name="signup-email" placeholder="din@epost.se" required />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-field">
+                <label htmlFor="signup-phone">Telefon</label>
+                <input type="tel" id="signup-phone" name="signup-phone" placeholder="070-000 00 00" required />
+              </div>
+              <div className="form-field">
+                <label htmlFor="signup-age">Ålder</label>
+                <input type="number" id="signup-age" name="signup-age" placeholder="Din ålder" min="1" max="120" required />
+              </div>
+            </div>
+            <div className="form-submit" style={{ justifyContent: "center" }}>
+              <BorderGlowButton variant="primary" type="submit" disabled={signupSubmitting}>
+                {signupSubmitting ? "SKICKAR…" : "ANMÄL DIG"}
+              </BorderGlowButton>
+              <span className="form-status" style={{ color: signupStatusColor }} aria-live="polite">
+                {signupStatus}
+              </span>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      {/* FAQ SECTION */}
+      <section className="faq-section" ref={faqRef}>
+        <div className="faq-container">
+          <div className="faq-header">
+            <h2 className="faq-title">FAQ</h2>
+          </div>
+          <div className="faq-list">
+            {faqItems.map((item, i) => (
+              <div
+                key={i}
+                className={`faq-item ${openFaq === i ? "faq-item--open" : ""}`}
+              >
+                <button
+                  className="faq-question"
+                  onClick={() => toggleFaq(i)}
+                  aria-expanded={openFaq === i}
+                >
+                  <span>{item.question}</span>
+                  <span className="faq-toggle">{openFaq === i ? "−" : "+"}</span>
+                </button>
+                <div className="faq-answer-wrap">
+                  <div className="faq-answer">
+                    <p>{item.answer}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
     </>
   );
 }

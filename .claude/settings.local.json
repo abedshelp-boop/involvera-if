@@ -22,7 +22,18 @@
       "Bash(curl -s http://localhost:3000/aktiviteter)",
       "mcp__Claude_Preview__preview_start",
       "Bash(npx kill-port:*)",
-      "Bash(taskkill /F /IM node.exe)"
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(node -e \"const config = require\\(''./next.config.ts''\\); console.log\\(JSON.stringify\\(config\\)\\)\")",
+      "Bash(grep -rn \"devIndicators\" node_modules/next/dist/server/*.js)",
+      "Bash(grep -o '.\\\\{0,80\\\\}__NEXT_DEV_INDICATOR.\\\\{0,80\\\\}' .next/dev/static/chunks/node_modules_next_dist_compiled_next-devtools_index_0553esy.js)",
+      "Bash(npx tsc:*)",
+      "Bash(blender --background --python _temp_inspect_glb.py)",
+      "Bash(\"C:/Program Files/Blender Foundation/Blender 5.1/blender.exe\" --background --python _temp_inspect_glb.py)",
+      "Bash(\"C:/Program Files/Blender Foundation/Blender 5.1/blender.exe\" --background --python _build_red_character.py)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "WebFetch(domain:3d-agent.com)",
+      "Bash(claude mcp:*)",
+      "Bash(where claude:*)"
     ]
   }
 }

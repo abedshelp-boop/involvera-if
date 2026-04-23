@@ -9,6 +9,7 @@
  */
 
 import type * as contactMessages from "../contactMessages.js";
+import type * as eventSignups from "../eventSignups.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   contactMessages: typeof contactMessages;
+  eventSignups: typeof eventSignups;
 }>;
 
 /**
