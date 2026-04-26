@@ -1,169 +1,128 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, type FormEvent } from "react";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import Link from "next/link";
 import Lenis from "lenis";
-import BorderGlowButton from "@/components/ui/BorderGlowButton";
-import BorderGlowCard from "@/components/ui/BorderGlowCard";
+import Footer from "@/components/layout/Footer";
+import ScrollReveal from "@/components/layout/ScrollReveal";
+import { api } from "../../convex/_generated/api";
+import "./homepage.css";
 
-/* ── SCROLL SECTIONS DATA ──────────────────────── */
-const sections = [
+/* ── DATA ─────────────────────────────────────── */
+
+const PANELS = [
   {
-    id: "fotboll",
-    label: "001 / FOTBOLL",
-    heading: "Träna.\nTävla.\nVäxa.",
-    body: "Regelbunden träning, turneringar och aktiviteter som bygger laganda, kondition och disciplin.",
-    align: "left" as const,
-    animation: "fade-up" as const,
+    n: "01",
+    tag: "Lagspel",
+    title: "FOTBOLL",
+    desc: "Tre åldersgrupper, tränare med UEFA-licens, två träningar i veckan på Olympia. Vi spelar för att vinna — och för att alla ska få speltid.",
+    img: "/involvera-images/4.jpg",
+    stats: [
+      { v: "85", l: "Spelare" },
+      { v: "3", l: "Lag" },
+      { v: "Tis · Tor", l: "Träning" },
+    ],
+    flip: false,
   },
   {
-    id: "parasport",
-    label: "002 / PARASPORT",
-    heading: "Sport För Alla\nKroppar.",
-    body: "Parasport är idrott anpassad för personer med funktionsnedsättning. Genom vårt partnerskap med Mitt speciella barn erbjuder vi anpassade aktiviteter för barn och unga.",
-    align: "right" as const,
-    animation: "slide-right" as const,
+    n: "02",
+    tag: "Inkludering",
+    title: "PARASPORT",
+    desc: "Anpassad idrott för barn och unga med funktionsvariation. Egna pass, integrerat med övriga lag — för att gemenskap inte har några begränsningar.",
+    img: "/involvera-images/3.jpg",
+    stats: [
+      { v: "40+", l: "Aktiva" },
+      { v: "5", l: "Disciplin" },
+      { v: "Mån · Ons", l: "Träning" },
+    ],
+    flip: true,
+    isPara: true,
   },
   {
-    id: "calisthenics",
-    label: "003 / CALISTHENICS",
-    heading: "Styrka Utan\nGränser.",
-    body: "Utomhusträning med kroppsvikt. Pull & Dip. Bygg styrka, uthållighet och mental toughness.",
-    align: "left" as const,
-    animation: "slide-left" as const,
+    n: "03",
+    tag: "Styrka",
+    title: "CALISTHENICS",
+    desc: "Kroppsvikt, parkour-rigg och utomhusgym i Pålsjö. Från första pull-up till handstand — vi börjar där du står idag.",
+    img: "/involvera-images/5.jpg",
+    stats: [
+      { v: "60", l: "Atleter" },
+      { v: "2x", l: "Per vecka" },
+      { v: "Utomhus", l: "Året om" },
+    ],
+    flip: false,
   },
   {
-    id: "om-oss",
-    label: "004 / OM OSS",
-    heading: "Vår\nMission.",
-    body: "Vårt syfte är att engagera och vägleda ungdomar mot idrott och en positiv miljö. Vi skapar en trygg, aktiv och utvecklande miljö för unga, oavsett bakgrund eller fysiska förutsättningar.",
-    align: "left" as const,
-    animation: "scale-up" as const,
+    n: "04",
+    tag: "Föreningen",
+    title: "OM OSS",
+    desc: "Grundad av föräldrar i Helsingborg som ville se en förening där alla får plats — oavsett bakgrund, plånbok eller funktionsvariation.",
+    img: "/involvera-images/6.jpg",
+    stats: [
+      { v: "200+", l: "Medlemmar" },
+      { v: "100%", l: "Volontärdrivet" },
+      { v: "200kr", l: "Årsavgift" },
+    ],
+    flip: true,
   },
 ];
 
-/* ── SPORT CARD DATA ────────────────────────────── */
-const sportCards = [
-  { icon: "⚽", label: "Fotboll", href: "/aktiviteter" },
-  { icon: "♿", label: "Parasport", href: "/aktiviteter" },
-  { icon: "💪", label: "Calisthenics", href: "/aktiviteter" },
+/* Mosaic image order: 5 cells (top row), then 1 cell + CTA + 1 cell (middle), then 5 cells (bottom).
+   The CTA spans grid-column 2/5 of row 2 via CSS. */
+const MOSAIC_IMAGES = [
+  "1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", // row 1
+  "6.jpg",                                       // row 2 left
+  "7.jpg",                                       // row 2 right
+  "2.jpg", "5.jpg", "1.jpg", "3.jpg", "6.jpg",   // row 3
 ];
 
-/* ── MOSAIC SLOTS ───────────────────────────────── */
-/* 12 surrounding slots (center is feature card with overlay, no image).
-   Image numbers chosen so no duplicate sits adjacent. */
-const mosaicSlots: { cls: string; img: number }[] = [
-  { cls: "mosaic-r1-1", img: 1 },
-  { cls: "mosaic-r1-2", img: 2 },
-  { cls: "mosaic-r1-3", img: 3 },
-  { cls: "mosaic-r1-4", img: 4 },
-  { cls: "mosaic-r1-5", img: 5 },
-  { cls: "mosaic-r2-1", img: 6 },
-  { cls: "mosaic-r2-3", img: 7 },
-  { cls: "mosaic-r3-1", img: 1 },
-  { cls: "mosaic-r3-2", img: 3 },
-  { cls: "mosaic-r3-3", img: 5 },
-  { cls: "mosaic-r3-4", img: 2 },
-  { cls: "mosaic-r3-5", img: 4 },
+const FAQ_ITEMS = [
+  {
+    q: "VAD KOSTAR DET ATT VARA MEDLEM?",
+    a: "Årsavgiften är 200kr för ungdomar under 18. Vi har stipendier för familjer som behöver det — fråga oss, ingen ska stå utanför av ekonomiska skäl.",
+  },
+  {
+    q: "BEHÖVS NÅGON ERFARENHET?",
+    a: "Nej. Alla våra grupper har plats för nybörjare. Du behöver bara ta dig hit.",
+  },
+  {
+    q: "VILKA ÅLDRAR VÄLKOMNAR NI?",
+    a: "8–18 år för fotboll och calisthenics. Parasport-grupperna sträcker sig upp till 25.",
+  },
+  {
+    q: "VAR TRÄNAR NI?",
+    a: "Olympia (fotboll), Pålsjö Friluftsgym (calisthenics) och Husensjö idrottshall (parasport).",
+  },
+  {
+    q: "HUR ANMÄLER MAN SIG?",
+    a: "Anmälan sker via formuläret nedan — eller direkt i WhatsApp-gruppen. Vi svarar inom 24h.",
+  },
+  {
+    q: "FINNS DET LÄGER OCH RESOR?",
+    a: "Ja. Två sommarläger per år och ett vinterläger. Subventionerade så att alla kan följa med.",
+  },
 ];
 
-/* ── FAQ DATA ──────────────────────────────────── */
-const faqItems = [
-  {
-    question: "Hur blir jag medlem i Involvera IF?",
-    answer:
-      "Du kan bli medlem genom att fylla i kontaktformuläret på vår hemsida eller kontakta oss direkt via e-post eller telefon. Vi välkomnar alla oavsett ålder, bakgrund eller erfarenhet.",
-  },
-  {
-    question: "Vilka tider och dagar tränar vi?",
-    answer:
-      "Vi har träningar flera gånger i veckan. Fotboll: tisdagar och torsdagar kl 17–19. Calisthenics: måndagar och onsdagar kl 16–18. Parasport: lördagar kl 10–12. Kontakta oss för aktuellt schema.",
-  },
-  {
-    question: "Var ligger våra träningsplaner och lokaler?",
-    answer:
-      "Vi tränar på flera platser i Helsingborg. Fotbollsträningarna sker på Olympia IP och våra calisthenics-pass hålls i utomhusparken vid Pålsjö. Kontakta oss för exakt adress och vägbeskrivning.",
-  },
-  {
-    question: "Kostar det något att vara med?",
-    answer:
-      "Vi håller våra avgifter så låga som möjligt för att alla ska kunna delta. Medlemsavgiften är 200 kr per termin. Vi erbjuder även möjlighet till reducerad avgift vid behov — ingen ska behöva stå utanför.",
-  },
-  {
-    question: "Behöver jag ha erfarenhet för att börja?",
-    answer:
-      "Absolut inte! Alla är välkomna oavsett nivå. Våra tränare anpassar övningarna efter varje deltagares förutsättningar. Det viktigaste är att du vill röra på dig och ha kul.",
-  },
-  {
-    question: "Hur kan jag engagera mig som volontär eller tränare?",
-    answer:
-      "Vi söker alltid engagerade personer som vill bidra. Kontakta oss via kontakt@involvera.se eller ring 070-713 05 08 så berättar vi mer om hur du kan hjälpa till.",
-  },
+const MARQUEE_ITEMS = [
+  "FOTBOLL",
+  "PARASPORT",
+  "CALISTHENICS",
+  "OCH MER",
+  "FOTBOLL",
+  "PARASPORT",
+  "CALISTHENICS",
+  "OCH MER",
 ];
+
+/* ── PAGE ─────────────────────────────────────── */
 
 export default function HomePage() {
-  const heroRef = useRef<HTMLElement>(null);
-  const marqueeRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const homeCTARef = useRef<HTMLDivElement>(null);
-  const mosaicRef = useRef<HTMLElement>(null);
-  const faqRef = useRef<HTMLElement>(null);
-  const signupRef = useRef<HTMLElement>(null);
-
-  /* ── FAQ accordion ──────────────────────────────── */
-  const [openFaq, setOpenFaq] = useState(0);
-  const toggleFaq = useCallback((i: number) => {
-    setOpenFaq((prev) => (prev === i ? -1 : i));
-  }, []);
-
-  /* ── Event signup form ─────────────────────────── */
-  const [signupStatus, setSignupStatus] = useState("");
-  const [signupStatusColor, setSignupStatusColor] = useState("var(--green)");
-  const [signupSubmitting, setSignupSubmitting] = useState(false);
-  const eventSignup = useMutation(api.eventSignups.signup);
-
-  const handleSignup = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const name = (formData.get("signup-name") as string).trim();
-    const email = (formData.get("signup-email") as string).trim();
-    const phone = (formData.get("signup-phone") as string).trim();
-    const ageStr = (formData.get("signup-age") as string).trim();
-    const age = parseInt(ageStr, 10);
-
-    if (!name || !email || !phone || !ageStr) {
-      setSignupStatus("Fyll i alla fält.");
-      setSignupStatusColor("#ff5555");
-      return;
-    }
-    if (isNaN(age) || age < 1 || age > 120) {
-      setSignupStatus("Ange en giltig ålder.");
-      setSignupStatusColor("#ff5555");
-      return;
-    }
-
-    setSignupSubmitting(true);
-    setSignupStatus("");
-    try {
-      await eventSignup({ name, email, phone, age });
-      form.reset();
-      setSignupStatusColor("var(--green)");
-      setSignupStatus("Anmälan skickad!");
-      setTimeout(() => setSignupStatus(""), 4500);
-    } catch {
-      setSignupStatusColor("#ff5555");
-      setSignupStatus("Något gick fel. Försök igen.");
-    } finally {
-      setSignupSubmitting(false);
-    }
-  };
-
-  /* ── GSAP + Lenis Init ───────────────────────── */
+  /* Lenis smooth scroll */
   useEffect(() => {
     const lenis = new Lenis({
       duration: 1.2,
@@ -171,569 +130,544 @@ export default function HomePage() {
       smoothWheel: true,
     });
 
-    lenis.on("scroll", ScrollTrigger.update);
-    gsap.ticker.add((time: number) => lenis.raf(time * 1000));
-    gsap.ticker.lagSmoothing(0);
-
-    /* Hero entrance animation */
-    const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-    tl.to(".hero-label", { opacity: 1, y: 0, duration: 0.65, delay: 0.15 });
-    tl.to(".word", { y: "0%", duration: 0.85, stagger: 0.1 }, "-=0.35");
-    tl.to(".hero-tagline", { opacity: 1, y: 0, duration: 0.6 }, "-=0.4");
-    tl.to(".hero-image-wrap", { opacity: 1, x: 0, duration: 0.9 }, "-=0.7");
-    tl.to(".hero-card", { opacity: 1, y: 0, duration: 0.6 }, "-=0.4");
-    tl.to(".hero-members", { opacity: 1, y: 0, duration: 0.5 }, "-=0.3");
-    tl.to(".hero-watermark", { opacity: 1, scale: 1, duration: 0.8 }, "-=0.6");
-
-    /* Scroll-driven animations */
-    const container = scrollContainerRef.current;
-    if (container) {
-      ScrollTrigger.create({
-        trigger: container,
-        start: "top top",
-        end: "bottom bottom",
-        scrub: true,
-        onUpdate: (self) => {
-          const p = self.progress;
-
-          // Hero fades out
-          if (heroRef.current) {
-            heroRef.current.style.opacity = String(Math.max(0, 1 - p * 15));
-          }
-
-          // Marquee opacity — only visible while sections are on screen
-          if (marqueeRef.current) {
-            let opacity = 0;
-            if (p >= 0.05 && p < 0.10) opacity = (p - 0.05) / 0.05;
-            else if (p >= 0.10 && p < 0.50) opacity = 1;
-            else if (p >= 0.50 && p < 0.55) opacity = 1 - (p - 0.50) / 0.05;
-            marqueeRef.current.style.opacity = String(opacity);
-          }
-        },
-      });
-
-      // Marquee horizontal scroll
-      gsap.to(".marquee-text", {
-        xPercent: -25,
-        ease: "none",
-        scrollTrigger: {
-          trigger: container,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: true,
-        },
-      });
+    let rafId = 0;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
     }
-
-    // Pin each scroll section
-    sectionRefs.current.forEach((section, i) => {
-      if (!section) return;
-      const inner = section.querySelector(".section-inner");
-      if (!inner) return;
-
-      const animChildren = Array.from(inner.children) as HTMLElement[];
-      const anim = sections[i].animation;
-
-      ScrollTrigger.create({
-        trigger: section,
-        start: "top top",
-        end: "+=150%",
-        pin: true,
-        pinSpacing: true,
-        scrub: true,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          section.style.pointerEvents =
-            progress > 0.1 && progress < 0.9 ? "auto" : "none";
-
-          animChildren.forEach((child, ci) => {
-            const staggerDelay = ci * 0.12;
-            const totalRange = 1 - staggerDelay * 0.3;
-            const childRaw =
-              totalRange > 0
-                ? (progress - staggerDelay * 0.3) / totalRange
-                : progress;
-            const e = easeOut(Math.max(0, childRaw));
-
-            switch (anim) {
-              case "fade-up":
-                child.style.opacity = String(e);
-                child.style.transform = `translateY(${(1 - e) * 40}px)`;
-                break;
-              case "slide-right":
-                child.style.opacity = String(e);
-                child.style.transform = `translateX(${(1 - e) * -50}px)`;
-                break;
-              case "slide-left":
-                child.style.opacity = String(e);
-                child.style.transform = `translateX(${(1 - e) * 50}px)`;
-                break;
-              case "scale-up":
-                child.style.opacity = String(e);
-                child.style.transform = `scale(${0.82 + e * 0.18})`;
-                child.style.transformOrigin = "left center";
-                break;
-            }
-          });
-        },
-      });
-    });
-
-    // Mosaic entrance animation — pinned + scroll-scrubbed reveal
-    if (mosaicRef.current) {
-      const mosaicItems = Array.from(
-        mosaicRef.current.querySelectorAll<HTMLElement>(".mosaic-item")
-      );
-      gsap.set(mosaicItems, { opacity: 0, y: 60, filter: "blur(8px)" });
-
-      ScrollTrigger.create({
-        trigger: mosaicRef.current,
-        start: "top top",
-        end: "+=150%",
-        pin: true,
-        pinSpacing: true,
-        scrub: true,
-        onUpdate: (self) => {
-          const progress = self.progress;
-          const count = mosaicItems.length;
-          const spread = 0.75;
-          const span = 0.35;
-          mosaicItems.forEach((item, i) => {
-            const staggerDelay =
-              count > 1 ? (i / (count - 1)) * spread : 0;
-            const raw = (progress - staggerDelay) / span;
-            const e = easeOut(Math.max(0, Math.min(1, raw)));
-            item.style.opacity = String(e);
-            item.style.transform = `translateY(${(1 - e) * 60}px)`;
-            item.style.filter = `blur(${(1 - e) * 8}px)`;
-          });
-        },
-      });
-    }
-
-    // Home CTA fade-in
-    if (homeCTARef.current) {
-      const ctaChildren = Array.from(
-        homeCTARef.current.children
-      ) as HTMLElement[];
-      ScrollTrigger.create({
-        trigger: homeCTARef.current,
-        start: "top 80%",
-        end: "top 30%",
-        scrub: true,
-        onUpdate: (self) => {
-          ctaChildren.forEach((child, ci) => {
-            const stagger = ci * 0.15;
-            const raw = Math.max(0, (self.progress - stagger) / (1 - stagger));
-            const e = easeOut(raw);
-            child.style.opacity = String(e);
-            child.style.transform = `translateY(${(1 - e) * 40}px)`;
-          });
-        },
-      });
-    }
-
-    // FAQ staggered entrance
-    if (faqRef.current) {
-      const faqHeader = faqRef.current.querySelector(".faq-header");
-      const faqItemEls = faqRef.current.querySelectorAll(".faq-item");
-
-      ScrollTrigger.create({
-        trigger: faqRef.current,
-        start: "top 80%",
-        once: true,
-        onEnter: () => {
-          gsap.to(faqHeader, {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            ease: "power3.out",
-          });
-          gsap.to(faqItemEls, {
-            opacity: 1,
-            y: 0,
-            duration: 0.5,
-            ease: "power3.out",
-            stagger: 0.08,
-            delay: 0.2,
-          });
-        },
-      });
-    }
-
-    // Event signup entrance
-    if (signupRef.current) {
-      const signupChildren = signupRef.current.querySelectorAll(
-        ".event-signup-section > div > *"
-      );
-
-      ScrollTrigger.create({
-        trigger: signupRef.current,
-        start: "top 80%",
-        once: true,
-        onEnter: () => {
-          gsap.to(signupChildren, {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            ease: "power3.out",
-            stagger: 0.1,
-          });
-        },
-      });
-    }
+    rafId = requestAnimationFrame(raf);
 
     return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
+      cancelAnimationFrame(rafId);
       lenis.destroy();
     };
   }, []);
 
   return (
     <>
-      {/* HERO */}
-      <section
-        className="hero-standalone"
-        id="hero-section"
-        ref={heroRef}
-        aria-label="Hero"
-      >
-        {/* Watermark brand text behind everything */}
-        <div className="hero-watermark" aria-hidden="true">
-          INVOLVERA
-        </div>
-
-        {/* Left: text content */}
-        <div className="hero-content">
-          <p className="hero-label">Involvera IF</p>
-          <h1 className="hero-heading">
-            <div className="word-line">
-              <span className="word-wrap">
-                <span className="word">IDROTT</span>
-              </span>
-            </div>
-            <div className="word-line">
-              <span className="word-wrap accent-word">
-                <span className="word">FÖR</span>
-              </span>{" "}
-              <span className="word-wrap accent-word">
-                <span className="word">ALLA</span>
-              </span>
-              <span className="word-wrap">
-                <span className="word hero-period">.</span>
-              </span>
-            </div>
-          </h1>
-          <p className="hero-tagline">
-            En inkluderande idrottsförening i Helsingborg
-          </p>
-        </div>
-
-        {/* Right: hero image */}
-        <div className="hero-image-wrap">
-          <div
-            className="hero-image-placeholder"
-            style={{
-              backgroundImage: "url('/involvera-images/5.jpg')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
-          <div className="hero-image-overlay" />
-        </div>
-
-        {/* Bottom-left: sport card widget */}
-        <div className="hero-card">
-          <p className="hero-card-label">Involvera IF</p>
-          <p className="hero-card-question">Vilken sport passar dig?</p>
-          <div className="hero-card-pills">
-            {sportCards.map((s) => (
-              <Link key={s.label} href={s.href} className="hero-card-pill">
-                <span className="hero-card-pill-icon">{s.icon}</span>
-                {s.label}
-              </Link>
-            ))}
-          </div>
-          <Link href="/aktiviteter" className="hero-card-link">
-            Utforska →
-          </Link>
-        </div>
-
-        {/* Bottom-right: member badge */}
-        <div className="hero-members">
-          <div className="hero-members-avatars">
-            <div className="hero-avatar" style={{ background: "#2ECC40" }} />
-            <div className="hero-avatar" style={{ background: "#27ae32" }} />
-            <div className="hero-avatar" style={{ background: "#1a8a25" }} />
-          </div>
-          <div className="hero-members-text">
-            <span className="hero-members-count">200+</span>
-            <span className="hero-members-label">Medlemmar</span>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="scroll-arrow" aria-hidden="true">
-          <svg
-            width="24"
-            height="36"
-            viewBox="0 0 24 36"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect
-              x="1"
-              y="1"
-              width="22"
-              height="34"
-              rx="11"
-              stroke="white"
-              strokeWidth="1.5"
-            />
-            <circle
-              className="scroll-dot"
-              cx="12"
-              cy="10"
-              r="3"
-              fill="white"
-            />
-          </svg>
-        </div>
-      </section>
-
-      {/* MARQUEE */}
-      <div className="marquee-wrap" ref={marqueeRef} aria-hidden="true">
-        <div className="marquee-text">
-          FOTBOLL&nbsp;&bull;&nbsp;PARASPORT&nbsp;&bull;&nbsp;CALISTHENICS&nbsp;&bull;&nbsp;INTEGRATION&nbsp;&bull;&nbsp;HELSINGBORG&nbsp;&bull;&nbsp;FOTBOLL&nbsp;&bull;&nbsp;PARASPORT&nbsp;&bull;&nbsp;CALISTHENICS&nbsp;&bull;&nbsp;INTEGRATION&nbsp;&bull;&nbsp;HELSINGBORG&nbsp;&bull;&nbsp;FOTBOLL&nbsp;&bull;&nbsp;PARASPORT&nbsp;&bull;&nbsp;CALISTHENICS&nbsp;&bull;&nbsp;INTEGRATION&nbsp;&bull;&nbsp;HELSINGBORG&nbsp;&bull;
-        </div>
-      </div>
-
-      {/* SCROLL CONTAINER */}
-      <div id="scroll-container" ref={scrollContainerRef}>
-        {sections.map((s, i) => (
-          <div
-            key={s.id}
-            className={`scroll-section align-${s.align}`}
-            data-animation={s.animation}
-            ref={(el) => {
-              sectionRefs.current[i] = el;
-            }}
-          >
-            <div className="section-inner">
-              <p className="section-label">{s.label}</p>
-              <h2 className="section-heading">
-                {s.heading.split("\n").map((line, li) => (
-                  <span key={li}>
-                    {line}
-                    {li < s.heading.split("\n").length - 1 && <br />}
-                  </span>
-                ))}
-              </h2>
-              <p className="section-body">{s.body}</p>
-            </div>
-          </div>
-        ))}
-
-        {/* MOSAIC COMMUNITY GRID */}
-        <section className="mosaic-section" ref={mosaicRef}>
-          <div className="mosaic-container">
-            <div className="mosaic-grid">
-              {mosaicSlots.slice(0, 6).map(({ cls, img }) => (
-                <BorderGlowCard key={cls} className={`mosaic-item ${cls}`}>
-                  <div
-                    className="mosaic-img"
-                    style={{
-                      backgroundImage: `url('/involvera-images/${img}.jpg')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
-                </BorderGlowCard>
-              ))}
-
-              {/* Center feature card — stays imageless, holds the overlay text */}
-              <BorderGlowCard className="mosaic-item mosaic-feature">
-                <div className="mosaic-img" />
-                <div className="mosaic-feature-overlay">
-                  <span className="mosaic-feature-text">GÅ MED I LAGET</span>
-                </div>
-              </BorderGlowCard>
-
-              {mosaicSlots.slice(6).map(({ cls, img }) => (
-                <BorderGlowCard key={cls} className={`mosaic-item ${cls}`}>
-                  <div
-                    className="mosaic-img"
-                    style={{
-                      backgroundImage: `url('/involvera-images/${img}.jpg')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  />
-                </BorderGlowCard>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="home-cta" ref={homeCTARef}>
-          <h2 className="home-cta-heading">
-            REDO ATT
-            <br />
-            GÅ MED?
-          </h2>
-          <p className="home-cta-sub">Bli en del av Involvera IF idag.</p>
-          <BorderGlowButton variant="primary" size="large" href="/kontakt">
-            Kontakta Oss
-          </BorderGlowButton>
-          <div className="home-cta-contacts">
-            <span>kontakt@involvera.se</span>
-            <span className="home-cta-sep">|</span>
-            <span>070-713 05 08</span>
-          </div>
-        </section>
-      </div>
-
-      {/* WhatsApp Group CTA Section */}
-      <section className="whatsapp-section" aria-label="Gå med i vår WhatsApp-grupp">
-        <div className="whatsapp-card">
-          <div className="whatsapp-icon" aria-hidden="true">
-            <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <path d="M16.003 2.667C8.641 2.667 2.67 8.638 2.67 16c0 2.352.62 4.642 1.798 6.667L2.667 29.333l6.833-1.78A13.29 13.29 0 0 0 16 29.333h.003c7.362 0 13.333-5.971 13.333-13.333S23.365 2.667 16.003 2.667Zm0 24A10.63 10.63 0 0 1 10.5 25.12l-.395-.237-4.057 1.057 1.082-3.952-.258-.407A10.66 10.66 0 1 1 16.003 26.667Zm5.837-7.99c-.32-.16-1.893-.934-2.187-1.04-.293-.107-.507-.16-.72.16-.213.32-.826 1.04-1.013 1.253-.187.213-.374.24-.694.08-.32-.16-1.35-.498-2.572-1.588-.951-.849-1.592-1.895-1.779-2.215-.187-.32-.02-.493.14-.653.144-.144.32-.374.48-.56.16-.187.213-.32.32-.534.107-.213.053-.4-.027-.56-.08-.16-.72-1.733-.987-2.373-.26-.624-.524-.539-.72-.549l-.613-.011a1.17 1.17 0 0 0-.853.4c-.294.32-1.12 1.094-1.12 2.667s1.147 3.093 1.307 3.307c.16.213 2.253 3.44 5.467 4.827.764.33 1.36.527 1.825.675.767.244 1.466.21 2.019.128.616-.092 1.893-.774 2.159-1.521.267-.747.267-1.387.187-1.52-.08-.133-.294-.213-.614-.373Z"/>
-            </svg>
-          </div>
-          <div className="whatsapp-copy">
-            <span className="whatsapp-eyebrow">Gemenskap</span>
-            <h2 className="whatsapp-heading">GÅ MED I VÅR<br/>WHATSAPP-GRUPP</h2>
-            <p className="whatsapp-body">
-              Där listar vi alla sporter vi erbjuder. Gå med, välj vad du vill prova, och träffa andra som tränar med oss.
-            </p>
-          </div>
-          {/* TODO: replace href="#" with real WhatsApp invite URL (chat.whatsapp.com/...) */}
-          <a
-            href="#"
-            className="whatsapp-cta"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Gå med
-            <span className="whatsapp-cta-arrow">→</span>
-          </a>
-        </div>
-      </section>
-
-      {/* Event Signup Section */}
-      <section
-        className="event-signup-section"
-        ref={signupRef}
-        style={{
-          padding: "6rem 8vw",
-          background: "var(--black)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ maxWidth: 640, width: "100%", textAlign: "center" }}>
-          <span style={{
-            fontFamily: "var(--font-body)",
-            fontSize: "0.62rem",
-            fontWeight: 500,
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            color: "var(--green)",
-            marginBottom: "1.5rem",
-            display: "block",
-          }}>
-            Kommande evenemang
-          </span>
-          <h2 style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(2.5rem, 5vw, 4.5rem)",
-            lineHeight: 0.92,
-            color: "var(--white)",
-            marginBottom: "1.2rem",
-          }}>
-            ANMÄL DIG
-          </h2>
-          <p style={{
-            fontSize: "clamp(0.85rem, 1vw, 1rem)",
-            fontWeight: 300,
-            color: "var(--dim)",
-            marginBottom: "3rem",
-            lineHeight: 1.8,
-          }}>
-            Anmäl dig till våra kommande aktiviteter och evenemang.
-            Fyll i formuläret så kontaktar vi dig med mer information.
-          </p>
-
-          <form className="contact-form" onSubmit={handleSignup} noValidate style={{ textAlign: "left" }}>
-            <div className="form-row">
-              <div className="form-field">
-                <label htmlFor="signup-name">Namn</label>
-                <input type="text" id="signup-name" name="signup-name" placeholder="Ditt namn" required />
-              </div>
-              <div className="form-field">
-                <label htmlFor="signup-email">E-post</label>
-                <input type="email" id="signup-email" name="signup-email" placeholder="din@epost.se" required />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-field">
-                <label htmlFor="signup-phone">Telefon</label>
-                <input type="tel" id="signup-phone" name="signup-phone" placeholder="070-000 00 00" required />
-              </div>
-              <div className="form-field">
-                <label htmlFor="signup-age">Ålder</label>
-                <input type="number" id="signup-age" name="signup-age" placeholder="Din ålder" min="1" max="120" required />
-              </div>
-            </div>
-            <div className="form-submit" style={{ justifyContent: "center" }}>
-              <BorderGlowButton variant="primary" type="submit" disabled={signupSubmitting}>
-                {signupSubmitting ? "SKICKAR…" : "ANMÄL DIG"}
-              </BorderGlowButton>
-              <span className="form-status" style={{ color: signupStatusColor }} aria-live="polite">
-                {signupStatus}
-              </span>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      {/* FAQ SECTION */}
-      <section className="faq-section" ref={faqRef}>
-        <div className="faq-container">
-          <div className="faq-header">
-            <h2 className="faq-title">FAQ</h2>
-          </div>
-          <div className="faq-list">
-            {faqItems.map((item, i) => (
-              <div
-                key={i}
-                className={`faq-item ${openFaq === i ? "faq-item--open" : ""}`}
-              >
-                <button
-                  className="faq-question"
-                  onClick={() => toggleFaq(i)}
-                  aria-expanded={openFaq === i}
-                >
-                  <span>{item.question}</span>
-                  <span className="faq-toggle">{openFaq === i ? "−" : "+"}</span>
-                </button>
-                <div className="faq-answer-wrap">
-                  <div className="faq-answer">
-                    <p>{item.answer}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ScrollReveal />
+      <Hero />
+      <Marquee />
+      <Panels />
+      <Mosaic />
+      <FAQ />
+      <Signup />
+      <Footer />
     </>
   );
 }
 
-function easeOut(t: number): number {
-  return 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3);
+/* ── HERO ─────────────────────────────────────── */
+
+function Hero() {
+  const router = useRouter();
+  const [sport, setSport] = useState("");
+
+  const handleNext = () => {
+    router.push("/aktiviteter");
+  };
+
+  return (
+    <section className="iv-hero">
+      <div className="iv-hero-bg" />
+      <div className="iv-hero-watermark">
+        INVOLVERA<span className="tm">IF</span>
+      </div>
+
+      <div className="iv-hero-content">
+        <div className="iv-hero-eyebrow">Helsingborg · Sedan 2014</div>
+        <h1 className="iv-hero-title">
+          IDROTT FÖR
+          <br />
+          <span className="green">ALLA</span>
+          <span className="period">.</span>
+        </h1>
+        <p className="iv-hero-sub">
+          En förening där alla kan vara med — fotboll, parasport och
+          calisthenics för Helsingborgs ungdomar. Låga avgifter. Hög gemenskap.
+        </p>
+
+        <div className="iv-wa-hero-cta-row">
+          {/* TODO: replace href="#" with real WhatsApp invite URL (chat.whatsapp.com/...) */}
+          <a
+            href="#"
+            className="iv-wa-hero-cta"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="icon">
+              <WhatsappGlyph size={16} />
+            </span>
+            Gå med i WhatsApp-gruppen
+          </a>
+          <span
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.4)",
+            }}
+          >
+            Direktkontakt med tränarna
+          </span>
+        </div>
+      </div>
+
+      <div className="iv-hero-bottom">
+        <div className="iv-picker">
+          <div className="iv-picker-step">
+            <span>Steg 1/2</span>
+            <span className="bar" />
+            <span style={{ color: "rgba(255,255,255,0.4)" }}>
+              Hitta din sport
+            </span>
+          </div>
+          <div className="iv-picker-q">Vilken idrott passar dig?</div>
+          <div className="iv-picker-row">
+            <select
+              className="iv-picker-select"
+              value={sport}
+              onChange={(e) => setSport(e.target.value)}
+              aria-label="Välj idrott"
+            >
+              <option value="">Välj idrott</option>
+              <option value="fotboll">Fotboll</option>
+              <option value="parasport">Parasport</option>
+              <option value="calisthenics">Calisthenics</option>
+              <option value="annat">Och mer</option>
+            </select>
+            <button
+              type="button"
+              className="iv-picker-next"
+              onClick={handleNext}
+            >
+              Nästa <ArrowRight />
+            </button>
+          </div>
+          <div className="iv-picker-foot">
+            Tar 30 sekunder · Helt kostnadsfritt
+          </div>
+        </div>
+
+        <div className="iv-hero-right">
+          <div className="iv-members">
+            <div className="iv-members-avatars">
+              <div
+                style={{
+                  backgroundImage: "url(/involvera-images/1.jpg)",
+                }}
+              />
+              <div
+                style={{
+                  backgroundImage: "url(/involvera-images/4.jpg)",
+                }}
+              />
+              <div
+                style={{
+                  backgroundImage: "url(/involvera-images/2.jpg)",
+                }}
+              />
+              <div
+                style={{
+                  backgroundImage: "url(/involvera-images/6.jpg)",
+                }}
+              />
+            </div>
+            <div>
+              <div className="iv-members-count">200+</div>
+              <div className="iv-members-label">medlemmar</div>
+            </div>
+          </div>
+          <div className="iv-coach-bubble" title="Prata med en tränare" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── MARQUEE ──────────────────────────────────── */
+
+function Marquee() {
+  const items = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS]; // duplicated for seamless loop
+  return (
+    <div className="iv-marquee" aria-hidden="true">
+      <div className="iv-marquee-track">
+        {items.map((it, i) => (
+          <span
+            key={i}
+            style={{ display: "inline-flex", alignItems: "center", gap: "36px" }}
+          >
+            <strong>{it}</strong>
+            <span className="dot">●</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── PANELS ───────────────────────────────────── */
+
+function Panels() {
+  return (
+    <section className="iv-panels">
+      {PANELS.map((p, i) => (
+        <div
+          key={i}
+          className={`iv-panel${p.flip ? " flip" : ""}${
+            p.isPara ? " para" : ""
+          }`}
+        >
+          <div className="iv-panel-text">
+            <div className="iv-panel-num">
+              <span>{p.n}</span>
+              <span className="dash" />
+              <span>{p.tag}</span>
+            </div>
+            <h2 className="iv-panel-title">
+              {p.title}
+              <span className="green">.</span>
+            </h2>
+            <p className="iv-panel-desc">{p.desc}</p>
+            <div className="iv-panel-stats">
+              {p.stats.map((s, j) => (
+                <div key={j} className="iv-panel-stat">
+                  <div className="v">{s.v}</div>
+                  <div className="l">{s.l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div
+            className="iv-panel-img"
+            style={{ backgroundImage: `url(${p.img})` }}
+          >
+            <div className="iv-panel-img-tag">
+              <span className="dot" />
+              {p.title}
+            </div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+/* ── MOSAIC ───────────────────────────────────── */
+
+function Mosaic() {
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const onMove = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      const cell = target?.closest<HTMLElement>(".iv-mosaic-cell");
+      if (!cell || !grid.contains(cell)) return;
+      const r = cell.getBoundingClientRect();
+      cell.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      cell.style.setProperty("--my", `${e.clientY - r.top}px`);
+    };
+    grid.addEventListener("pointermove", onMove);
+    return () => grid.removeEventListener("pointermove", onMove);
+  }, []);
+
+  return (
+    <section className="iv-mosaic-section">
+      <div className="iv-mosaic-head">
+        <h2>
+          EN FÖRENING.
+          <br />
+          FYRA <span className="green">VÄGAR</span> IN.
+        </h2>
+        <div className="meta">
+          200+ medlemmar.
+          <br />
+          Tre stadsdelar.
+          <br />
+          Ingen lämnas utanför.
+        </div>
+      </div>
+
+      <div className="iv-mosaic" ref={gridRef}>
+        {/* Row 1 — 5 cells */}
+        {MOSAIC_IMAGES.slice(0, 5).map((src, i) => (
+          <div
+            key={`r1-${i}`}
+            className="iv-mosaic-cell"
+            style={{ backgroundImage: `url(/involvera-images/${src})` }}
+          />
+        ))}
+
+        {/* Row 2 — 1 cell + CTA + 1 cell */}
+        <div
+          className="iv-mosaic-cell"
+          style={{ backgroundImage: `url(/involvera-images/${MOSAIC_IMAGES[5]})` }}
+        />
+
+        <a href="/kontakt" className="iv-mosaic-cta">
+          <div className="iv-mosaic-cta-pre">
+            <span className="dash" />
+            Bli medlem · 200kr/år
+          </div>
+          <h3>
+            GÅ MED I
+            <br />
+            LAGET
+          </h3>
+          <div className="iv-mosaic-cta-foot">
+            <div className="meta">Plats till alla. Alltid.</div>
+            <div className="arrow">
+              <ArrowRight size={18} />
+            </div>
+          </div>
+        </a>
+
+        <div
+          className="iv-mosaic-cell"
+          style={{ backgroundImage: `url(/involvera-images/${MOSAIC_IMAGES[6]})` }}
+        />
+
+        {/* Row 3 — 5 cells */}
+        {MOSAIC_IMAGES.slice(7, 12).map((src, i) => (
+          <div
+            key={`r3-${i}`}
+            className="iv-mosaic-cell"
+            style={{ backgroundImage: `url(/involvera-images/${src})` }}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ── FAQ ──────────────────────────────────────── */
+
+function FAQ() {
+  const [open, setOpen] = useState(0);
+  return (
+    <section className="iv-faq-section">
+      <div className="iv-faq-frame">
+        <div className="iv-faq-glyph">
+          <div className="word">FAQ</div>
+          <div className="symbol">
+            <span />
+            <span />
+          </div>
+        </div>
+        <div className="iv-faq-list">
+          {FAQ_ITEMS.map((it, i) => (
+            <div
+              key={i}
+              className={`iv-faq-row${open === i ? " open" : ""}`}
+            >
+              <button
+                type="button"
+                className="iv-faq-row-head"
+                onClick={() => setOpen(open === i ? -1 : i)}
+                aria-expanded={open === i}
+              >
+                <span className="iv-faq-row-q">{it.q}</span>
+                <span className="iv-faq-row-toggle" aria-hidden="true">
+                  +
+                </span>
+              </button>
+              <div className="iv-faq-row-body">
+                <div>
+                  <p>{it.a}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── SIGNUP ───────────────────────────────────── */
+
+function Signup() {
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState("");
+  const [statusColor, setStatusColor] = useState("var(--green)");
+  const eventSignup = useMutation(api.eventSignups.signup);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const firstName = (fd.get("firstName") as string).trim();
+    const lastName = (fd.get("lastName") as string).trim();
+    const email = (fd.get("email") as string).trim();
+    const phone = (fd.get("phone") as string).trim();
+    const ageStr = (fd.get("age") as string).trim();
+    const age = parseInt(ageStr, 10);
+
+    if (!firstName || !lastName || !email || !phone || !ageStr) {
+      setStatusColor("#ff5555");
+      setStatus("Fyll i alla fält.");
+      return;
+    }
+    if (isNaN(age) || age < 1 || age > 120) {
+      setStatusColor("#ff5555");
+      setStatus("Ange en giltig ålder.");
+      return;
+    }
+
+    setSubmitting(true);
+    setStatus("");
+    try {
+      await eventSignup({
+        name: `${firstName} ${lastName}`,
+        email,
+        phone,
+        age,
+      });
+      form.reset();
+      setStatusColor("var(--green)");
+      setStatus("Anmälan skickad!");
+      setTimeout(() => setStatus(""), 4500);
+    } catch {
+      setStatusColor("#ff5555");
+      setStatus("Något gick fel. Försök igen.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <section className="iv-signup">
+      <div className="iv-signup-frame">
+        <div className="iv-signup-img">
+          <div className="iv-signup-quote">
+            <span className="small">Nästa event · 18 maj</span>
+            ÖPPET HUS
+            <br />
+            PÅ OLYMPIA.
+          </div>
+        </div>
+        <div className="iv-signup-form">
+          <div className="num">
+            <span className="dash" />
+            Anmäl dig
+          </div>
+          <h3>
+            KOM OCH
+            <br />
+            TESTA <span className="green">GRATIS</span>.
+          </h3>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="grid">
+              <div className="iv-field">
+                <label htmlFor="signup-firstName">Förnamn</label>
+                <input
+                  id="signup-firstName"
+                  name="firstName"
+                  type="text"
+                  placeholder="Maja"
+                  required
+                />
+              </div>
+              <div className="iv-field">
+                <label htmlFor="signup-lastName">Efternamn</label>
+                <input
+                  id="signup-lastName"
+                  name="lastName"
+                  type="text"
+                  placeholder="Andersson"
+                  required
+                />
+              </div>
+              <div className="iv-field full">
+                <label htmlFor="signup-email">E-post</label>
+                <input
+                  id="signup-email"
+                  name="email"
+                  type="email"
+                  placeholder="maja@exempel.se"
+                  required
+                />
+              </div>
+              <div className="iv-field">
+                <label htmlFor="signup-phone">Telefon</label>
+                <input
+                  id="signup-phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="070 123 45 67"
+                  required
+                />
+              </div>
+              <div className="iv-field">
+                <label htmlFor="signup-age">Ålder</label>
+                <input
+                  id="signup-age"
+                  name="age"
+                  type="number"
+                  min={1}
+                  max={120}
+                  placeholder="14"
+                  required
+                />
+              </div>
+            </div>
+            <div className="iv-signup-submit">
+              <button
+                type="submit"
+                className="iv-btn-primary"
+                disabled={submitting}
+              >
+                {submitting ? "SKICKAR…" : "Anmäl dig"}{" "}
+                {!submitting && <ArrowRight />}
+              </button>
+              <div className="iv-signup-foot">Vi ringer upp inom 24h.</div>
+              <span
+                className="iv-signup-status"
+                style={{ color: statusColor }}
+                aria-live="polite"
+              >
+                {status}
+              </span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ── ICONS ────────────────────────────────────── */
+
+function ArrowRight({ size = 14 }: { size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function WhatsappGlyph({ size = 24, color = "#fff" }: { size?: number; color?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill={color}
+      aria-hidden="true"
+    >
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.768.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zm-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884zm8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
+    </svg>
+  );
 }

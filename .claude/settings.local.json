@@ -33,7 +33,11 @@
       "mcp__mcp-registry__search_mcp_registry",
       "WebFetch(domain:3d-agent.com)",
       "Bash(claude mcp:*)",
-      "Bash(where claude:*)"
+      "Bash(where claude:*)",
+      "Bash(where vercel *)",
+      "Bash(vercel whoami *)",
+      "Bash(git add *)",
+      "Read(//c/Users/Abeds/Downloads/**)"
     ]
   }
 }
