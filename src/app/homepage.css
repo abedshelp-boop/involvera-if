@@ -324,7 +324,6 @@
 .iv-panel-img-tag .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; box-shadow: 0 0 0 4px rgba(46,204,64,0.2);}
 
 /* alternate: image left, text right */
-.iv-panel.flip { grid-template-columns: 1fr 1fr; }
 .iv-panel.flip .iv-panel-text { order: 2; }
 .iv-panel.flip .iv-panel-img  { order: 1; }
 

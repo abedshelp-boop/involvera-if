@@ -407,7 +407,10 @@
   position: relative;
   background: linear-gradient(180deg, var(--black) 0%, #050505 50%, var(--black) 100%);
   padding: clamp(80px, 10vw, 140px) 0 clamp(80px, 10vw, 140px);
-  overflow: hidden;
+  /* `clip` instead of `hidden` — clips overflowing content (e.g. the
+     desktop 3D dome) without establishing a scroll container, so the
+     mobile reel's `position: sticky` pin still works. */
+  overflow: clip;
 }
 .iv-dome-head {
   max-width: 1340px;
@@ -762,7 +765,9 @@
     gap: 10px;
     overflow-x: auto;
     padding-bottom: 16px;
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
   .iv-dome-mobile-carousel::-webkit-scrollbar { display: none; }
   .iv-dome-mobile-carousel .iv-dome-mtile {

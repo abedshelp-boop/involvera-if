@@ -23,10 +23,19 @@ function buildTiles(): Tile[] {
   return tiles;
 }
 
-const mobileItems = Array.from(
-  { length: 12 },
-  (_, i) => `/involvera-images/${(i % 7) + 1}.jpg`
+const REEL_IMAGES = Array.from(
+  { length: 7 },
+  (_, i) => `/involvera-images/${i + 1}.jpg`
 );
+const REEL_TAGS = [
+  "TRÄNING",
+  "MATCH",
+  "LÄGER",
+  "PARASPORT",
+  "CALISTHENICS",
+  "TURNERING",
+  "GEMENSKAP",
+];
 
 export default function Dome() {
   const [open, setOpen] = useState<string | null>(null);
@@ -134,20 +143,7 @@ export default function Dome() {
         // before the heavy 3D mounts (avoids hydration mismatch on float math).
         <div className="iv-dome-stage" />
       ) : mobile ? (
-        <div className="iv-dome-stage">
-          <div className="iv-dome-mobile-carousel">
-            {mobileItems.map((src, i) => (
-              <div
-                key={i}
-                className="iv-dome-mtile"
-                style={{ backgroundImage: `url(${src})` }}
-              />
-            ))}
-          </div>
-          <div className="iv-dome-controls">
-            <span className="label">Galleri · 7 foton</span>
-          </div>
-        </div>
+        <DomeReel />
       ) : (
         <div className="iv-dome-stage">
           <div ref={domeRef} className="iv-dome">
@@ -201,5 +197,92 @@ export default function Dome() {
         </button>
       </div>
     </section>
+  );
+}
+
+function DomeReel() {
+  // Continuous progress (0..1) across the pinned section. Drives the slide
+  // stack's translateY directly, so swipes feel 1:1 with finger motion. The
+  // discrete `active` index drives Ken Burns + the progress rail.
+  const [progress, setProgress] = useState(0);
+  const pinRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const pin = pinRef.current;
+    if (!pin) return;
+
+    const update = () => {
+      const rect = pin.getBoundingClientRect();
+      const pinDistance = rect.height - window.innerHeight;
+      if (pinDistance <= 0) {
+        setProgress(0);
+        return;
+      }
+      const raw = -rect.top / pinDistance;
+      setProgress(Math.max(0, Math.min(1, raw)));
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  const lastIdx = REEL_IMAGES.length - 1;
+  // Continuous translation: 0 → 0%, 1 → -(N-1)*100%
+  const translatePct = -progress * lastIdx * 100;
+  const active = Math.round(progress * lastIdx);
+
+  return (
+    <div className="mg-reel-pin" ref={pinRef}>
+      <div className="mg-reel-sticky">
+        <div
+          className="mg-reel-stack"
+          style={{ transform: `translate3d(0, ${translatePct}%, 0)` }}
+        >
+          {REEL_IMAGES.map((src, i) => (
+            <div
+              key={i}
+              className={`mg-reel-slide${i === active ? " is-active" : ""}`}
+            >
+              <div className="mg-reel-img" style={{ backgroundImage: `url(${src})` }} />
+              <div className="mg-reel-shade" />
+              <div className="mg-reel-meta-tl">
+                <div className="mg-reel-num">{String(i + 1).padStart(2, "0")}</div>
+                <div className="mg-reel-of">/ {String(REEL_IMAGES.length).padStart(2, "0")}</div>
+              </div>
+              <div className="mg-reel-meta-bl">
+                <div className="mg-reel-tag">{REEL_TAGS[i]}</div>
+                <div className="mg-reel-loc">HELSINGBORG · 2025</div>
+              </div>
+              {i < lastIdx && (
+                <div className="mg-reel-cue">
+                  <span>SVEP</span>
+                  <svg width="14" height="22" viewBox="0 0 14 22" fill="none" aria-hidden="true">
+                    <path
+                      d="M7 1V21M7 21L1 15M7 21L13 15"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mg-reel-rail">
+          {REEL_IMAGES.map((_, i) => (
+            <div
+              key={i}
+              className={`mg-reel-rail-seg${i <= active ? " on" : ""}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

@@ -44,7 +44,9 @@
 
 html {
   scroll-behavior: auto;
-  overflow-x: hidden;
+  /* `clip` instead of `hidden` so html/body don't become scroll containers
+     — that would break `position: sticky` on descendant pins. */
+  overflow-x: clip;
   max-width: 100%;
 }
 
@@ -54,7 +56,7 @@ body {
   font-family: var(--font-body);
   font-weight: 400;
   line-height: 1.6;
-  overflow-x: hidden;
+  overflow-x: clip;
   cursor: none;
 }
 
@@ -1922,3 +1924,277 @@ a.detail-value:hover {
   .iv-om-btn-primary,
   .iv-om-btn-outline { width: 100%; padding: 18px 24px; font-size: 12px; justify-content: center; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE GALLERIES — Coverflow + Vertical Reel
+   Phone-only replacements for the desktop dome (/aktiviteter)
+   and the desktop OmOrbit (/om-oss). Components only mount in
+   the JS mobile branch so these styles render no-op on desktop.
+   ═══════════════════════════════════════════════════════════ */
+
+/* shared lightbox */
+.mg-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(5,5,5,0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: grid; place-items: center;
+  animation: mg-fade 0.25s ease;
+}
+@keyframes mg-fade { from { opacity: 0; } to { opacity: 1; } }
+.mg-lightbox-img {
+  width: min(92vw, 92%);
+  aspect-ratio: 4/5;
+  background-size: cover; background-position: center;
+  border-radius: 14px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6),
+              0 0 0 1px rgba(46,204,64,0.25),
+              0 0 60px rgba(46,204,64,0.18);
+  animation: mg-pop 0.4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes mg-pop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.mg-lightbox-close {
+  position: absolute; top: 22px; right: 22px;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff; font-size: 18px; cursor: pointer;
+  display: grid; place-items: center;
+}
+
+/* ═══════ VARIANT 1 — COVERFLOW (mobile OmOrbit) ═══════ */
+.mg-coverflow {
+  position: relative;
+  margin-top: 36px;
+  user-select: none;
+}
+.mg-coverflow .mg-cf-stage {
+  position: relative;
+  height: 380px;
+  perspective: 1100px;
+  perspective-origin: center 35%;
+  user-select: none;
+  touch-action: pan-y;
+}
+.mg-coverflow .mg-cf-floor {
+  position: absolute; left: 0; right: 0; bottom: 90px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(46,204,64,0.35) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(46,204,64,0.25);
+  z-index: 0;
+}
+.mg-coverflow .mg-cf-track {
+  position: absolute; top: 50%; left: 50%;
+  width: 0; height: 0;
+  transform-style: preserve-3d;
+  transform: translate(-50%, -55%);
+}
+.mg-cf-tile {
+  position: absolute;
+  top: -130px; left: -90px;
+  width: 180px; height: 240px;
+  border-radius: 10px;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(.16,1,.3,1), opacity 0.4s ease;
+  cursor: pointer;
+  will-change: transform;
+}
+.mg-cf-img {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 24px 50px rgba(0,0,0,0.55),
+    inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.mg-cf-tile.is-active .mg-cf-img {
+  border-color: rgba(46,204,64,0.55);
+  box-shadow:
+    0 28px 70px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(46,204,64,0.35),
+    0 0 50px rgba(46,204,64,0.25);
+}
+.mg-cf-shine {
+  position: absolute; inset: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 35%, transparent 70%, rgba(0,0,0,0.25) 100%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+.mg-cf-reflect {
+  position: absolute; left: 0; right: 0; top: 100%;
+  height: 80px;
+  background-size: cover; background-position: center;
+  transform: scaleY(-1);
+  border-radius: 0 0 10px 10px;
+  opacity: 0.18;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 80%);
+          mask-image: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 80%);
+  filter: blur(0.5px);
+}
+.mg-cf-tile.is-active .mg-cf-reflect { opacity: 0.32; }
+.mg-cf-hud {
+  position: absolute; left: 0; right: 0; bottom: 14px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px;
+  z-index: 5;
+}
+.mg-cf-counter {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+.mg-cf-counter .cur { font-size: 36px; color: var(--green); line-height: 1; }
+.mg-cf-counter .sep { font-size: 24px; color: rgba(255,255,255,0.45); margin: 0 2px; }
+.mg-cf-counter .tot { font-size: 18px; color: rgba(255,255,255,0.45); }
+.mg-cf-dots { display: flex; gap: 8px; }
+.mg-cf-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  border: none; padding: 0; cursor: pointer;
+  transition: all 0.3s;
+}
+.mg-cf-dot.on {
+  background: var(--green);
+  width: 22px; border-radius: 4px;
+  box-shadow: 0 0 8px rgba(46,204,64,0.6);
+}
+.mg-cf-hint {
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(255,255,255,0.28);
+}
+
+/* ═══════ VARIANT 2 — VERTICAL REEL (mobile Dome) ═══════ */
+.mg-reel-section {
+  position: relative;
+  background: linear-gradient(180deg, var(--black) 0%, #050505 50%, var(--black) 100%);
+  padding: 56px 0 64px;
+  overflow: hidden;
+}
+.mg-reel-section .mg-head { padding: 0 20px; margin-bottom: 28px; }
+.mg-reel-section .mg-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-body);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 14px;
+}
+.mg-reel-section .mg-eyebrow-bar { width: 22px; height: 1px; background: var(--green); display: inline-block; }
+.mg-reel-section .mg-title {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 56px; line-height: 0.92;
+  letter-spacing: 0.01em; text-transform: uppercase;
+  margin: 0 0 14px; color: #fff;
+}
+.mg-reel-section .mg-green { color: var(--green); }
+.mg-reel-section .mg-meta {
+  font-size: 12px; line-height: 1.55; color: rgba(255,255,255,0.45);
+  letter-spacing: 0.04em;
+  max-width: 320px;
+}
+/* Outer spacer: total page-scroll distance dedicated to the pinned reel.
+   Height = N * 100dvh → user gets ~1 viewport of scroll per slide
+   transition + a final hold for the last slide. */
+.mg-reel-pin {
+  position: relative;
+  height: calc(7 * 100vh);
+  height: calc(7 * 100dvh);
+}
+/* Pinned panel — stays glued to viewport top while the spacer scrolls past */
+.mg-reel-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #000;
+}
+/* Vertical strip of slides; transform driven inline by the component */
+.mg-reel-stack {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.mg-reel-slide {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background: #000;
+}
+.mg-reel-img {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  transition: transform 6s linear;
+  transform: scale(1);
+}
+.mg-reel-slide.is-active .mg-reel-img {
+  transform: scale(1.08);
+}
+.mg-reel-shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 25%, transparent 60%, rgba(0,0,0,0.85) 100%);
+}
+.mg-reel-meta-tl {
+  position: absolute; top: 16px; left: 16px;
+  display: flex; align-items: baseline; gap: 6px;
+  font-family: var(--font-display);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+.mg-reel-meta-tl .mg-reel-num {
+  font-size: 36px; line-height: 1; color: var(--green);
+}
+.mg-reel-meta-tl .mg-reel-of {
+  font-size: 14px; color: rgba(255,255,255,0.7);
+}
+.mg-reel-meta-bl {
+  position: absolute; left: 16px; right: 16px; bottom: 18px;
+}
+.mg-reel-tag {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 28px; line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.mg-reel-loc {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+}
+.mg-reel-cue {
+  position: absolute; right: 16px; bottom: 22px;
+  display: inline-flex; flex-direction: column; align-items: center;
+  gap: 6px;
+  color: rgba(255,255,255,0.7);
+  font-size: 8px; letter-spacing: 0.28em; font-weight: 600;
+  animation: mg-bob 1.6s ease-in-out infinite;
+}
+.mg-reel-slide:last-child .mg-reel-cue { display: none; }
+@keyframes mg-bob {
+  0%,100% { transform: translateY(0); opacity: 0.9; }
+  50%     { transform: translateY(-4px); opacity: 1; }
+}
+.mg-reel-rail {
+  position: absolute; top: 14px; right: 14px;
+  display: flex; flex-direction: column; gap: 4px;
+  width: 3px;
+  z-index: 4;
+}
+.mg-reel-rail-seg {
+  width: 3px; height: 22px; border-radius: 2px;
+  background: rgba(255,255,255,0.18);
+  transition: background 0.3s;
+}
+.mg-reel-rail-seg.on { background: var(--green); box-shadow: 0 0 6px rgba(46,204,64,0.6); }
