@@ -188,9 +188,8 @@ function Hero() {
         </p>
 
         <div className="iv-wa-hero-cta-row">
-          {/* TODO: replace href="#" with real WhatsApp invite URL (chat.whatsapp.com/...) */}
           <a
-            href="#"
+            href="https://chat.whatsapp.com/GAfvn1VmvQ86plHqMFhVEH"
             className="iv-wa-hero-cta"
             target="_blank"
             rel="noopener noreferrer"

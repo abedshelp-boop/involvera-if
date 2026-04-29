@@ -1,8 +1,7 @@
-// TODO: replace href="#" with real WhatsApp invite URL (chat.whatsapp.com/...)
 export default function WhatsAppFAB() {
   return (
     <a
-      href="#"
+      href="https://chat.whatsapp.com/GAfvn1VmvQ86plHqMFhVEH"
       target="_blank"
       rel="noopener noreferrer"
       className="whatsapp-fab"
